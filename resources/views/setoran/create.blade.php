@@ -1,0 +1,124 @@
+@extends('layouts.master')
+@section('title', 'Tambah Setoran Wilayah')
+
+@section('content')
+<style>
+    .card-soft {
+        border-radius: 18px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.06);
+        border: none;
+    }
+    .btn-nalen {
+        background: #FFC400;
+        border: none;
+        border-radius: 999px;
+        font-weight: 600;
+        padding-inline: 18px;
+    }
+    .btn-nalen:hover {
+        background: #ffb000;
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="card card-soft">
+        <div class="card-header bg-warning text-white" style="border-radius: 18px 18px 0 0;">
+            <span class="fw-semibold">
+                Tambah Setoran – {{ $salesArea->nama_sales }} ({{ $salesArea->nama_area }})
+            </span>
+        </div>
+
+        <div class="card-body">
+
+            <form action="{{ route('admin.setoran.store') }}" method="POST" class="mt-3">
+                @csrf
+                <input type="hidden" name="id_sales" value="{{ $salesArea->id_sales }}">
+                <input type="hidden" name="id_area"  value="{{ $salesArea->id_area }}">
+
+                {{-- PERIODE SETORAN --}}
+                <div class="mb-3">
+                    <label class="form-label small">Periode Setoran</label>
+                    <div class="d-flex gap-2">
+                        <select name="bulan" class="form-select form-select-sm" style="max-width: 140px;">
+                            @foreach (range(1, 12) as $m)
+                                <option value="{{ $m }}" {{ (int)($bulan ?? now()->month) === $m ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <select name="tahun" class="form-select form-select-sm" style="max-width: 110px;">
+                            @foreach (range(now()->year - 2, now()->year + 1) as $y)
+                                <option value="{{ $y }}" {{ (int)($tahun ?? now()->year) === $y ? 'selected' : '' }}>
+                                    {{ $y }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nominal</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">Rp</span>
+                        <input type="number"
+                               name="nominal"
+                               class="form-control"
+                               min="1"
+                               step="1"
+                               value="{{ old('nominal') }}"
+                               required>
+                    </div>
+                    @error('nominal')
+                        <small class="text-danger">{{ $message }}</small>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Catatan</label>
+                    <textarea name="catatan"
+                              rows="3"
+                              class="form-control form-control-sm"
+                              placeholder="Opsional...">{{ old('catatan') }}</textarea>
+                    @error('catatan')
+                        <small class="text-danger">{{ $message }}</small>
+                    @enderror
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ route('admin.setoran.riwayat', [
+                            'id_sales' => $salesArea->id_sales,
+                            'id_area'  => $salesArea->id_area,
+                            'tahun'    => $tahun ?? now()->year,
+                            'bulan'    => $bulan ?? now()->month,
+                        ]) }}" class="btn btn-outline-secondary btn-sm">
+                        Batal
+                    </a>
+                    <button type="submit" class="btn btn-nalen btn-sm">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+@endsection
