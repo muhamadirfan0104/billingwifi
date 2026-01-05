@@ -93,7 +93,9 @@
     <tr>
         {{-- NO --}}
         <td>{{ $noUrut }}</td>
-
+    <td class="text-center">
+        {{ $p->nomor_buku ?? '-' }}
+    </td>
         {{-- NAMA --}}
         <td>{{ $p->nama }}</td>
 
@@ -147,7 +149,7 @@
 
 @empty
     <tr>
-        <td colspan="10" class="text-center text-muted py-3">
+        <td colspan="11" class="text-center text-muted py-3">
             Tidak ada pelanggan untuk ditampilkan.
         </td>
     </tr>

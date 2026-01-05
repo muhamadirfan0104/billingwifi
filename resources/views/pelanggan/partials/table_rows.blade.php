@@ -7,11 +7,17 @@
             $langgananAktif = $p->langganan->sortByDesc('tanggal_mulai')->first();
             $tanggalAktif   = $langgananAktif->tanggal_mulai ?? null;
         @endphp
-
         <tr>
-            {{-- No --}}
-            <td>{{ $nomor }}</td>
+            {{-- Checkbox --}}
+            <td class="ps-4" style="width:40px;">
+                <input type="checkbox" class="row-check" value="{{ $p->id_pelanggan }}">
+            </td>
 
+            {{-- No --}}
+            <td style="width:70px;">{{ $nomor }}</td>
+    <td class="text-center">
+        {{ $p->nomor_buku ?? '-' }}
+    </td>
             {{-- Nama --}}
             <td>{{ $p->nama }}</td>
 
@@ -21,13 +27,11 @@
             {{-- Sales --}}
             <td>{{ $p->sales->user->name ?? '-' }}</td>
 
-            {{-- Paket harga total --}}
+            {{-- Paket --}}
             <td>
                 @if($langgananAktif && $langgananAktif->paket)
                     <div>{{ $langgananAktif->paket->nama_paket }}</div>
-                    <small>
-                        Rp {{ number_format($langgananAktif->paket->harga_total ?? 0, 0, ',', '.') }}
-                    </small>
+                    <small>Rp {{ number_format($langgananAktif->paket->harga_total ?? 0, 0, ',', '.') }}</small>
                 @else
                     -
                 @endif
@@ -42,14 +46,12 @@
                 @endif
             </td>
 
-            {{-- IP Address --}}
+            {{-- IP --}}
             <td>{{ $p->ip_address }}</td>
 
             {{-- Status --}}
             <td>
-                @php
-                    $status = $p->status_pelanggan_efektif; // pakai accessor di model
-                @endphp
+                @php $status = $p->status_pelanggan_efektif; @endphp
 
                 @if ($status == 'aktif')
                     <span class="badge bg-success">Aktif</span>
@@ -63,23 +65,18 @@
             </td>
 
             {{-- Aksi --}}
-            <td>
-                <a href="{{ route('pelanggan.edit', $p->id_pelanggan) }}" class="btn btn-sm btn-primary">
-                    Edit
-                </a>
+            <td class="text-center" style="width:220px;">
+                <a href="{{ route('pelanggan.edit', $p->id_pelanggan) }}" class="btn btn-sm btn-primary">Edit</a>
 
-                <button 
-                    type="button"
-                    class="btn btn-sm btn-danger btn-delete" 
+                <button type="button" class="btn btn-sm btn-danger btn-delete"
                     data-url="{{ route('pelanggan.destroy', $p->id_pelanggan) }}">
                     Hapus
                 </button>
 
-                <a href="{{ route('pelanggan.show', $p->id_pelanggan) }}" class="btn btn-sm btn-info">
-                    Detail
-                </a>
+                <a href="{{ route('pelanggan.show', $p->id_pelanggan) }}" class="btn btn-sm btn-info">Detail</a>
             </td>
         </tr>
+
     @endforeach
 @else
     <tr>

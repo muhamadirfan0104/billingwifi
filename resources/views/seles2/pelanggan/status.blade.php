@@ -1,386 +1,278 @@
 @extends('seles2.layout.master')
 @section('title', 'Status Pelanggan')
 @section('content')
-    <div class="pelanggan-page">
+<div class="pelanggan-page">
 
-        {{-- HEADER (Tema Amber) --}}
-        <div class="pelanggan-header d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('dashboard-sales') }}" class="back-btn">
-                    <i class="bi bi-arrow-left"></i>
+    {{-- HEADER (Gaya Index) --}}
+    <div class="pelanggan-header d-flex align-items-center">
+        <a href="{{ route('dashboard-sales') }}" class="back-btn me-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h5 class="mb-0 fw-bold">Status Pelanggan</h5>
+    </div>
+
+    {{-- TAB STATUS (Logika Status Lama) --}}
+    @php
+        $statusPage = $status ?? request('status', 'aktif');
+    @endphp
+    <div class="status-tabs-container px-1">
+        <div class="status-tabs d-flex gap-2 overflow-auto pb-2 px-2">
+            @foreach(['baru', 'aktif', 'isolir', 'berhenti'] as $st)
+                <a href="{{ route('seles2.pelanggan.status', ['status' => $st]) }}"
+                    class="status-tab {{ $statusPage === $st ? 'active' : '' }}">
+                    {{ ucfirst($st) }}
+                    <span class="badge-count">{{ $statusCounts[$st] ?? 0 }}</span>
                 </a>
-                <h5 class="mb-0 fw-bold">Status Pelanggan</h5>
+            @endforeach
+        </div>
+    </div>
+{{-- SEARCH & AREA (Optimized) --}}
+<div class="filter-wrapper mt-3 px-2">
+    <div class="row g-2 align-items-center">
+        {{-- Search Input --}}
+        <div class="col">
+            <div class="search-box">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="search-input" class="form-control-custom" placeholder="Cari nama atau alamat...">
             </div>
         </div>
-
-        @php
-            // LOGIKA PHP ASLI (TIDAK DIUBAH)
-            $statusPage = $status ?? request('status', 'aktif');
-
-            $totalBaru = $statusCounts['baru'] ?? 0;
-            $totalAktif = $statusCounts['aktif'] ?? 0;
-            $totalBerhenti = $statusCounts['berhenti'] ?? 0;
-            $totalIsolir = $statusCounts['isolir'] ?? 0;
-        @endphp
-
-        {{-- TAB STATUS (Scrollable & Amber Theme) --}}
-        <div class="status-tabs-container mt-3 px-1">
-            <div class="status-tabs d-flex gap-2 overflow-auto pb-2 px-2">
-                <a href="{{ route('seles2.pelanggan.status', ['status' => 'baru']) }}"
-                    class="status-tab {{ $statusPage === 'baru' ? 'active' : '' }}">
-                    Baru
-                    <span class="badge-count">{{ $totalBaru }}</span>
-                </a>
-
-                <a href="{{ route('seles2.pelanggan.status', ['status' => 'aktif']) }}"
-                    class="status-tab {{ $statusPage === 'aktif' ? 'active' : '' }}">
-                    Aktif
-                    <span class="badge-count">{{ $totalAktif }}</span>
-                </a>
-
-                <a href="{{ route('seles2.pelanggan.status', ['status' => 'isolir']) }}"
-                    class="status-tab {{ $statusPage === 'isolir' ? 'active' : '' }}">
-                    Isolir
-                    <span class="badge-count">{{ $totalIsolir }}</span>
-                </a>
-
-                <a href="{{ route('seles2.pelanggan.status', ['status' => 'berhenti']) }}"
-                    class="status-tab {{ $statusPage === 'berhenti' ? 'active' : '' }}">
-                    Berhenti
-                    <span class="badge-count">{{ $totalBerhenti }}</span>
-                </a>
-            </div>
-        </div>
-
-        {{-- FILTER & PENCARIAN --}}
-        <div class="filter-bar mt-2 px-1">
-            <div class="flex-grow-1 me-2">
-                <div class="input-group input-group-sm shadow-sm">
-                    <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="search-input" class="form-control border-start-0 rounded-end-pill ps-0"
-                        placeholder="Cari nama, HP, alamat...">
-                </div>
-            </div>
-
-            <div style="width: 140px;">
-                <select id="area-filter" class="form-select form-select-sm rounded-pill shadow-sm text-muted">
+        {{-- Area Filter --}}
+        <div class="col-auto">
+            <div class="filter-box">
+                <select id="area-filter" class="form-select-custom">
                     <option value="">Semua Wilayah</option>
-                    @php
-                        $areas = $dataArea ?? collect([]);
-                    @endphp
-                    @foreach ($areas as $area)
-                        <option value="{{ strtolower($area->nama_area) }}">
-                            {{ $area->nama_area }}
-                        </option>
+                    @foreach ($dataArea ?? [] as $a)
+                        <option value="{{ strtolower($a->nama_area) }}">{{ strtoupper($a->nama_area) }}</option>
                     @endforeach
                 </select>
             </div>
         </div>
-
-        {{-- LIST PELANGGAN --}}
-        <div class="pelanggan-list mt-3">
-            @forelse ($pelanggan as $p)
-                @php
-                    // LOGIKA PHP ASLI
-                    $rawStatus = $p->status_pelanggan;
-                    $statusBadge = $p->status_pelanggan_efektif ?? $rawStatus;
-                    $langgananAktif = $p->langganan->sortByDesc('tanggal_mulai')->first();
-
-                    $tanggalKolom = null;
-                    if ($rawStatus === 'baru') {
-                        $tanggalKolom = $p->tanggal_registrasi;
-                    } elseif ($langgananAktif) {
-                        if ($rawStatus === 'aktif') {
-                            $tanggalKolom = $langgananAktif->tanggal_mulai;
-                        } elseif ($rawStatus === 'isolir') {
-                            $tanggalKolom = $langgananAktif->tanggal_isolir;
-                        } elseif ($rawStatus === 'berhenti') {
-                            $tanggalKolom = $langgananAktif->tanggal_berhenti;
-                        }
-                    }
-
-                    $labelTanggal = match ($rawStatus) {
-                        'baru' => 'Registrasi',
-                        'aktif' => 'Aktif Sejak',
-                        'isolir' => 'Tgl Isolir',
-                        'berhenti' => 'Berhenti',
-                        default => 'Tanggal',
-                    };
-
-                    $areaName = $p->area->nama_area ?? '-';
-                    $paketName = $langgananAktif->paket->nama_paket ?? '-';
-                    $hargaTotal = $langgananAktif->paket->harga_total ?? 0;
-
-                    // Mapping Warna Badge Bootstrap 5 (menggunakan bg-...)
-                    $badgeClass = match ($statusBadge) {
-                        'baru' => 'bg-warning text-dark', // Kuning
-                        'aktif' => 'bg-success', // Hijau
-                        'isolir' => 'bg-secondary', // Abu-abu (Isolir biasanya abu/gelap)
-                        'berhenti' => 'bg-danger', // Merah
-                        default => 'bg-secondary',
-                    };
-                @endphp
-
-                <div class="pelanggan-card position-relative mb-3" data-nama="{{ strtolower($p->nama ?? '') }}"
-                    data-hp="{{ strtolower($p->nomor_hp ?? '') }}" data-alamat="{{ strtolower($p->alamat ?? '') }}"
-                    data-area="{{ strtolower($areaName) }}" data-ip="{{ strtolower($p->ip_address ?? '') }}"
-                    data-status="{{ strtolower($statusBadge) }}">
-
-                    {{-- CARD BISA DIKLIK --}}
-                    <a href="{{ route('seles2.pelanggan.show', $p->id_pelanggan) }}" class="stretched-link"></a>
-
-                    <div class="row g-0 align-items-center w-100 m-0">
-                        {{-- KIRI --}}
-                        <div class="col-7 pe-2">
-                            {{-- Nama & Status Badge --}}
-                            <div class="d-flex flex-column mb-1">
-                                <h6 class="fw-bold text-dark mb-0 text-truncate pelanggan-nama">
-                                    {{ $p->nama ?? '-' }}
-                                </h6>
-                            </div>
-
-                            {{-- Area --}}
-                            <div class="d-flex align-items-center gap-1 mb-1">
-                                <span
-                                    class="badge bg-light text-secondary border border-light small px-2 py-1 rounded-pill fw-normal text-truncate"
-                                    style="max-width: 100%;">
-                                    <i class="bi bi-geo-alt-fill me-1 text-warning"></i>
-                                    {{ strtoupper($areaName) }}
-                                </span>
-                            </div>
-
-                            {{-- Alamat --}}
-                            <div class="small text-muted text-truncate mb-2" style="font-size: 0.75rem;">
-                                {{ $p->alamat ?? 'Alamat tidak tersedia' }}
-                            </div>
-
-                            {{-- Paket --}}
-                            <div class="small mt-1 bg-light d-inline-block px-2 py-1 rounded border border-light text-truncate"
-                                style="max-width: 100%;">
-                                <span class="text-muted">Paket:</span> <span
-                                    class="fw-semibold text-dark">{{ $paketName }}</span>
-                            </div>
-                        </div>
-
-                        {{-- KANAN --}}
-                        <div class="col-5 ps-3 harga-col d-flex flex-column justify-content-between h-100">
-                            <div class="d-flex flex-column align-items-end w-100">
-                                {{-- Badge Status di Kanan Atas --}}
-                                <span class="badge {{ $badgeClass }} rounded-pill mb-2 shadow-sm"
-                                    style="font-size: 0.65rem;">
-                                    {{ strtoupper($statusBadge) }}
-                                </span>
-
-                                {{-- IP Address --}}
-                                @if (!empty($p->ip_address))
-                                    <div class="small fw-normal text-muted mb-1 text-end text-break font-monospace"
-                                        style="font-size: 0.7rem;">
-                                        {{ $p->ip_address }}
-                                    </div>
-                                @endif
-
-                                {{-- Tanggal --}}
-                                @if ($tanggalKolom)
-                                    <div class="small text-muted text-end" style="font-size: 0.7rem; line-height: 1.2;">
-                                        {{ $labelTanggal }}<br>
-                                        <span class="fw-bold text-dark">
-                                            {{ \Carbon\Carbon::parse($tanggalKolom)->locale('id')->translatedFormat('d M Y') }}
-                                        </span>
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Harga --}}
-                            <div class="text-end w-100 mt-2 pt-2 border-top border-light">
-                                <div class="small text-muted mb-0" style="font-size: 0.7rem;">Tagihan</div>
-                                <span class="fw-bold text-dark" style="font-size: 1.1rem;">
-                                    <span class="text-secondary small me-1" style="font-size: 0.8rem;">Rp</span>
-                                    {{ number_format($hargaTotal, 0, ',', '.') }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="text-center mt-5 py-5 px-3">
-                    <div class="mb-3">
-                        <i class="bi bi-filter-circle text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
-                    </div>
-                    <h6 class="text-muted fw-bold">Tidak ada data</h6>
-                    <p class="text-muted small">Belum ada pelanggan dengan status ini.</p>
-                </div>
-            @endforelse
-
-            {{-- PAGINATION --}}
-            @if (method_exists($pelanggan, 'links'))
-                <div class="mt-4 px-2">
-                    {{ $pelanggan->links() }}
-                </div>
-            @endif
-        </div>
-
-        <div class="hint-footer text-center mt-3 mb-2 mx-3 shadow-sm">
-            <i class="bi bi-hand-index-thumb me-1"></i> Tap kartu untuk detail
-        </div>
     </div>
+</div>
+
+    {{-- LIST PELANGGAN --}}
+    <div class="pelanggan-list mt-3">
+        @forelse ($pelanggan as $p)
+            @php
+                $rawStatus = $p->status_pelanggan;
+                $statusBadge = $p->status_pelanggan_efektif ?? $rawStatus;
+                $langgananAktif = $p->langganan->sortByDesc('tanggal_mulai')->first();
+
+                // Warna Border & Badge Berdasarkan Status
+                $themeColor = match ($statusBadge) {
+                    'baru' => ['hex' => '#f59e0b', 'class' => 'border-baru', 'bg' => 'bg-warning'],
+                    'aktif' => ['hex' => '#10b981', 'class' => 'border-aktif', 'bg' => 'bg-success'],
+                    'isolir' => ['hex' => '#6b7280', 'class' => 'border-isolir', 'bg' => 'bg-secondary'],
+                    'berhenti' => ['hex' => '#ef4444', 'class' => 'border-berhenti', 'bg' => 'bg-danger'],
+                    default => ['hex' => '#e5e7eb', 'class' => '', 'bg' => 'bg-light'],
+                };
+
+                $tanggalKolom = match ($rawStatus) {
+                    'baru' => $p->tanggal_registrasi,
+                    'aktif' => $langgananAktif?->tanggal_mulai,
+                    'isolir' => $langgananAktif?->tanggal_isolir,
+                    'berhenti' => $langgananAktif?->tanggal_berhenti,
+                    default => null
+                };
+
+                $labelTanggal = match ($rawStatus) {
+                    'baru' => 'Registrasi',
+                    'aktif' => 'Aktif',
+                    'isolir' => 'Isolir',
+                    'berhenti' => 'Berhenti',
+                    default => 'Tanggal',
+                };
+            @endphp
+
+            <div class="pelanggan-card position-relative {{ $themeColor['class'] }} mb-3"
+                data-nama="{{ strtolower($p->nama ?? '') }}"
+                data-area="{{ strtolower($p->area->nama_area ?? '') }}">
+                
+                <a href="{{ route('seles2.pelanggan.show', $p->id_pelanggan) }}" class="stretched-link"></a>
+
+                <div class="row g-0 align-items-center w-100 m-0">
+                    {{-- KIRI: Info Pelanggan --}}
+                    <div class="col-7 pe-2">
+                        <h6 class="fw-bold text-dark mb-1 text-truncate">{{ $p->nama ?? '-' }}</h6>
+                        
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <span class="badge-area">
+                                <i class="bi bi-geo-alt-fill me-1 text-warning"></i>
+                                {{ strtoupper($p->area->nama_area ?? '-') }}
+                            </span>
+                        </div>
+
+                        {{-- Label Status (Menyesuaikan permintaan: Status tidak hilang) --}}
+                        <div class="mb-2">
+                            <span class="badge {{ $themeColor['bg'] }} bg-opacity-10 {{ str_replace('bg-', 'text-', $themeColor['bg']) }} border rounded-pill px-2 py-1" style="font-size: 0.65rem;">
+                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> {{ strtoupper($statusBadge) }}
+                            </span>
+                        </div>
+
+                        <div class="small text-muted text-truncate mb-0" style="font-size: 0.75rem;">
+                            {{ $p->alamat ?? 'Alamat tidak tersedia' }}
+                        </div>
+                    </div>
+
+                    {{-- KANAN: Detail & Harga --}}
+                    <div class="col-5 ps-3 detail-col d-flex flex-column justify-content-between h-100">
+                        <div class="d-flex flex-column align-items-end w-100">
+                            @if (!empty($p->ip_address))
+                                <div class="ip-badge mb-1">{{ $p->ip_address }}</div>
+                            @endif
+
+                            @if ($tanggalKolom)
+                                <div class="date-info text-end text-dark">
+                                    {{ $labelTanggal }}:<br>
+                                    <span class="fw-bold text-dark">{{ \Carbon\Carbon::parse($tanggalKolom)->translatedFormat('d M Y') }}</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="price-section text-end w-100 mt-2 pt-2 border-top">
+                            <div class="price-label text-dark">Harga Paket</div>
+                            <div class="price-value">
+                                <span class="currency">Rp</span>{{ number_format($langgananAktif->paket->harga_total ?? 0, 0, ',', '.') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center mt-5 py-5 text-muted">
+                <i class="bi bi-person-x" style="font-size: 3rem; opacity: 0.2;"></i>
+                <p class="mt-2">Tidak ada data untuk status ini.</p>
+            </div>
+        @endforelse
+    </div>
+</div>
 @endsection
 
 @push('styles')
-    <style>
-        /* Global Page Style */
-        .pelanggan-page {
-            background: #f9fafb;
-            min-height: 100vh;
-            padding-bottom: 90px;
-        }
+<style>
+    .pelanggan-page { background: #f9fafb; min-height: 100vh; padding-bottom: 20px; }
+    
+    .pelanggan-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white; padding: 20px 20px 35px 20px;
+        border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
+        margin: -16px -16px 0 -16px;
+    }
 
-        /* 1. HEADER (Gradient Amber) */
-        .pelanggan-header {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            padding: 20px 20px 30px 20px;
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
-            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25);
-            margin: -16px -16px 0 -16px;
-            position: relative;
-            z-index: 10;
-        }
+    .back-btn {
+        background: rgba(255,255,255,0.2); width: 35px; height: 35px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; color: white; text-decoration: none;
+    }
 
-        .back-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 5px;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            justify-content: center;
-            transition: 0.2s;
-        }
+    /* Tab Status */
+    .status-tabs-container { margin-top: -20px; position: relative; z-index: 11; }
+    .status-tabs::-webkit-scrollbar { display: none; }
+    .status-tab {
+        white-space: nowrap; padding: 8px 16px; border-radius: 20px;
+        font-size: 0.85rem; background: white; color: #6b7280;
+        text-decoration: none; border: 1px solid #f3f4f6;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 6px;
+    }
+    .status-tab.active { background: #d97706; color: white; border-color: #d97706; }
+    .badge-count { background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; }
+    .status-tab.active .badge-count { background: rgba(255,255,255,0.2); }
 
-        .back-btn:active {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(0.9);
-        }
+    /* Card Layout (Sama dengan Index) */
+    .pelanggan-card {
+        background: white; border-radius: 16px; padding: 16px;
+        border: 1px solid #f3f4f6; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-left: 4px; transition: transform 0.2s;
+    }
+    .pelanggan-card:active { transform: scale(0.98); }
 
-        /* 2. TAB STATUS (Scrollable Pills) */
-        .status-tabs-container {
-            position: relative;
-            z-index: 11;
-            margin-top: -25px !important;
-            /* Naik menimpa header */
-        }
+    /* Border Warna Status */
+    .border-aktif { border-left: 5px solid #10b981 !important; }
+    .border-baru { border-left: 5px solid #f59e0b !important; }
+    .border-isolir { border-left: 5px solid #6b7280 !important; }
+    .border-berhenti { border-left: 5px solid #ef4444 !important; }
 
-        .status-tabs::-webkit-scrollbar {
-            display: none;
-        }
+    /* Komponen Kecil */
+    .badge-area { background: #f8fafc; color: #64748b; padding: 3px 10px; border-radius: 50px; font-size: 0.7rem; border: 1px solid #f1f5f9; }
+    .detail-col { border-left: 1px dashed #e5e7eb; }
+    .ip-badge { font-family: monospace; font-size: 0.7rem; color: #94a3b8; background: #f8fafc; padding: 2px 6px; border-radius: 4px; }
+    .date-info { font-size: 0.7rem; color: #94a3b8; line-height: 1.2; }
+    .price-label { font-size: 0.65rem; color: #94a3b8; margin-bottom: -2px; }
+    .price-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; }
+    .price-value .currency { font-size: 0.8rem; color: #64748b; margin-right: 2px; }
 
-        .status-tabs {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+/* Styling Search & Filter yang Lebih Rapi */
+.filter-wrapper {
+    position: relative;
+    z-index: 10;
+}
 
-        .status-tab {
-            white-space: nowrap;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            text-decoration: none;
-            color: #6b7280;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            border: 1px solid #f3f4f6;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s;
-        }
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
 
-        .status-tab.active {
-            background: #d97706;
-            /* Amber Dark */
-            color: #fff;
-            border-color: #d97706;
-            box-shadow: 0 4px 10px rgba(217, 119, 6, 0.3);
-        }
+.search-icon {
+    position: absolute;
+    left: 15px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
 
-        .badge-count {
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 12px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            font-weight: 700;
-        }
+.form-control-custom {
+    width: 100%;
+    padding: 10px 15px 10px 40px;
+    font-size: 0.85rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
 
-        .status-tab:not(.active) .badge-count {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
+.form-control-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    background-color: #fff;
+}
 
-        /* 3. FILTER BAR */
-        .filter-bar input,
-        .filter-bar select,
-        .input-group-text {
-            border: 1px solid #f3f4f6;
-            height: 40px;
-            font-size: 0.85rem;
-        }
+.form-select-custom {
+    padding: 10px 30px 10px 15px;
+    font-size: 0.85rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    min-width: 125px;
+}
 
-        .filter-bar input:focus,
-        .filter-bar select:focus {
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
-        }
+.form-select-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    color: #1e293b;
+}
 
-        /* 4. CARD PELANGGAN */
-        .pelanggan-card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            border: 1px solid #f3f4f6;
-            transition: transform 0.2s;
-        }
+/* Animasi saat filter tidak ditemukan */
+.text-center.mt-5 {
+    animation: fadeIn 0.5s ease;
+}
 
-        .pelanggan-card:active {
-            transform: scale(0.98);
-            background-color: #fcfcfc;
-        }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
-        .pelanggan-nama {
-            font-size: 1rem;
-            color: #111827;
-        }
-
-        .harga-col {
-            border-left: 1px dashed #e5e7eb;
-        }
-
-        /* 5. FOOTER HINT */
-        .hint-footer {
-            background: #fffbeb;
-            color: #d97706;
-            padding: 10px 16px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            border: 1px solid #fcd34d;
-        }
-
-        .stretched-link {
-            position: absolute;
-            inset: 0;
-            z-index: 5;
-        }
-    </style>
 @endpush
 
 @push('scripts')

@@ -235,12 +235,65 @@
                                 @endif
                             </div>
 
-                            <div class="modal-footer border-0 pt-0 pb-3">
-                                <button class="btn btn-light rounded-pill w-100 fw-bold text-secondary"
-                                    data-bs-dismiss="modal">
-                                    Tutup
-                                </button>
-                            </div>
+<div class="modal-footer border-0 pt-0 pb-3">
+    @php
+        $notaEmbedUrl = route('seles2.tagihan.nota', $pay->id_pembayaran) . '?embed=1';
+        $notaPrintUrl = route('seles2.tagihan.nota', $pay->id_pembayaran) . '?print=1';
+
+        // WA link (tetap kirim link dulu, karena WA web tidak bisa attach file otomatis)
+        $waNumber = $pelanggan?->nomor_hp ?? null;
+
+        $waLink = null;
+        if (!empty($waNumber)) {
+            $digits = preg_replace('/[^0-9]/', '', $waNumber);
+            if (str_starts_with($digits, '0')) $digits = '62'.substr($digits, 1);
+
+            $msg = "Halo, ini kwitansi pembayaran.\n".
+                   "No: ".$pay->no_pembayaran."\n".
+                   "Total: Rp ".number_format((int)$pay->nominal,0,',','.')."\n".
+                   "Link Kwitansi: ".route('seles2.tagihan.nota', $pay->id_pembayaran);
+
+            $waLink = "https://wa.me/".$digits."?text=".urlencode($msg);
+        }
+    @endphp
+
+    <div class="d-grid gap-2 w-100">
+        {{-- Preview --}}
+        <button type="button"
+                class="btn btn-outline-primary rounded-pill fw-bold btn-preview-nota"
+                data-nota-url="{{ $notaEmbedUrl }}"
+                data-bs-dismiss="modal">
+            <i class="bi bi-eye"></i> Cek Kwitansi
+        </button>
+
+        {{-- Cetak --}}
+        <!-- <a target="_blank"
+           href="{{ $notaPrintUrl }}"
+           class="btn btn-success rounded-pill fw-bold">
+            <i class="bi bi-printer"></i> Cetak
+        </a> -->
+
+        {{-- Kirim WA --}}
+        @if($waLink)
+            <a target="_blank"
+               href="{{ $waLink }}"
+               class="btn btn-outline-success rounded-pill fw-bold">
+                <i class="bi bi-whatsapp"></i> Kirim ke WA
+            </a>
+        @else
+            <button type="button" class="btn btn-outline-secondary rounded-pill fw-bold" disabled>
+                <i class="bi bi-whatsapp"></i> Nomor WA tidak tersedia
+            </button>
+        @endif
+
+        <button type="button"
+                class="btn btn-light rounded-pill fw-bold text-secondary"
+                data-bs-dismiss="modal">
+            Tutup
+        </button>
+    </div>
+</div>
+
 
                         </div>
                     </div>
@@ -268,6 +321,36 @@
             <i class="bi bi-info-circle me-1"></i> Tap kartu untuk melihat rincian
         </div>
     </div>
+
+    {{-- MODAL PREVIEW KWITANSI (iframe) --}}
+<div class="modal fade" id="modalPreviewNota" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 980px;">
+    <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold mb-0">
+          <i class="bi bi-file-earmark-text"></i> Preview Kwitansi (A4)
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0" style="background:#e9ecef;">
+        <iframe id="iframeNota"
+                src="about:blank"
+                style="width:100%; height:78vh; border:0; display:block;"></iframe>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">
+          Tutup
+        </button>
+        <button type="button" class="btn btn-success rounded-pill fw-bold" id="btnPrintIframe">
+          <i class="bi bi-printer"></i> Cetak
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @endsection
 
 @push('styles')
@@ -412,4 +495,30 @@
             });
         });
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+  const iframe = document.getElementById('iframeNota');
+  const btnPrint = document.getElementById('btnPrintIframe');
+
+  // Klik tombol "Cek Kwitansi" dari modal manapun
+  document.querySelectorAll('.btn-preview-nota').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const url = this.dataset.notaUrl;
+      if (iframe) iframe.src = url;
+
+      const m = new bootstrap.Modal(document.getElementById('modalPreviewNota'));
+      m.show();
+    });
+  });
+
+  if (btnPrint && iframe) {
+    btnPrint.addEventListener('click', function () {
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    });
+  }
+});
+</script>
+
 @endpush

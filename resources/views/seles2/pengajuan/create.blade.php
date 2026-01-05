@@ -99,9 +99,10 @@
                                 class="text-muted fw-normal">(Opsional)</span></label>
                         <input type="file" name="bukti_file" class="form-control form-control-custom form-control-file"
                             accept=".jpg,.jpeg,.png,.pdf">
-                        <div class="form-text small text-muted">
-                            <i class="bi bi-info-circle me-1"></i> Maksimal 2MB (JPG, PNG, PDF)
-                        </div>
+<div class="form-text small text-muted">
+    <i class="bi bi-info-circle me-1"></i> Maksimal 3MB (JPG, PNG, PDF)
+</div>
+
                     </div>
 
                     {{-- ACTION BUTTONS --}}

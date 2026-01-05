@@ -225,26 +225,28 @@
     <div class="card-admin p-0" style="overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-admin mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">No</th>
-                        <th>Nama</th>
-                        <th>Area</th>
-                        <th>Sales</th>
-                        <th>Paket & Harga</th>
-                        <th>
-                            @if($statusHalaman === 'baru') Tgl Registrasi
-                            @elseif($statusHalaman === 'aktif') Tgl Aktif
-                            @elseif($statusHalaman === 'berhenti') Tgl Berhenti
-                            @elseif($statusHalaman === 'isolir') Tgl Isolir
-                            @else Tanggal
-                            @endif
-                        </th>
-                        <th>IP</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
+ <thead>
+    <tr>
+        <th class="ps-4 text-center" style="width:70px;">No</th>
+        <th class="text-center" style="width:40px;">ID</th>
+        <th>Nama</th>
+        <th>Area</th>
+        <th>Sales</th>
+        <th >Paket & Harga</th>
+        <th class="text-center" style="width:140px;">
+            @if($statusHalaman === 'baru') Tgl Registrasi
+            @elseif($statusHalaman === 'aktif') Tgl Aktif
+            @elseif($statusHalaman === 'berhenti') Tgl Berhenti
+            @elseif($statusHalaman === 'isolir') Tgl Isolir
+            @else Tanggal
+            @endif
+        </th>
+        <th class="text-center" style="width:140px;">IP</th>
+        <th class="text-center" style="width:110px;">Status</th>
+        <th class="text-center" style="width:270px;">Aksi</th>
+    </tr>
+</thead>
+
                 <tbody id="pelanggan-status-body">
                     @include('pelanggan.partials.table_rows_status', ['pelanggan' => $pelanggan])
                 </tbody>

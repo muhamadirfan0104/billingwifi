@@ -42,7 +42,10 @@ class PelangganSalesController extends Controller
             ->paginate(20)
             ->appends($request->query());
 
-        return view('seles2.pelanggan.index', compact('pelanggan'));
+        $dataArea = Area::orderBy('nama_area')->get();
+
+        return view('seles2.pelanggan.index', compact('pelanggan', 'dataArea'));
+
     }
 
     /**
@@ -179,73 +182,89 @@ class PelangganSalesController extends Controller
     /**
      * STATUS BAYAR (yang sudah ada – tetap).
      */
-    public function statusBayar(Request $request)
-    {
-        $user  = Auth::user();
-        $sales = $user->sales ?? null;
 
-        $statusBayar = $request->get('status_bayar', 'belum'); // 'lunas' / 'belum'
+public function statusBayar(Request $request)
+{
+    $user  = Auth::user();
+    $sales = $user->sales ?? null;
 
-        $query = Pelanggan::with([
-            'area',
-            'langganan.tagihan',
-        ]);
+    $statusBayar = $request->get('status_bayar', 'belum'); // 'lunas' | 'belum'
+    $sort = $request->get('sort', 'tunggakan_desc');       // default
 
-        if ($sales) {
-            $query->where('id_sales', $sales->id_sales);
-        }
+    $query = Pelanggan::with(['area', 'langganan.tagihan']);
 
-        $query->whereHas('langganan.tagihan', function ($q) use ($statusBayar) {
-            if ($statusBayar === 'lunas') {
-                $q->whereIn('status_tagihan', ['lunas', 'sudah lunas']);
-            } else {
-                $q->where('status_tagihan', 'belum lunas');
-            }
+    if ($sales) {
+        $query->where('id_sales', $sales->id_sales);
+    }
+
+    if ($statusBayar === 'lunas') {
+        $query->whereHas('tagihan')
+              ->whereDoesntHave('tagihan', function ($q) {
+                  $q->where('status_tagihan', 'belum lunas');
+              });
+
+    } else {
+        // BELUM BAYAR = ada tagihan belum lunas
+        $query->whereHas('tagihan', function ($q) {
+            $q->where('status_tagihan', 'belum lunas');
         });
 
-        if ($search = $request->get('q')) {
-            $query->where(function ($q2) use ($search) {
-                $q2->where('nama', 'like', "%{$search}%")
-                   ->orWhere('nomor_hp', 'like', "%{$search}%")
-                   ->orWhere('alamat', 'like', "%{$search}%");
-            });
-        }
-
-        if ($area = $request->get('area')) {
-            $query->whereHas('area', function ($q3) use ($area) {
-                $q3->where('nama_area', 'like', "%{$area}%");
-            });
-        }
-
-        $pelanggan = $query
-            ->orderBy('nama')
-            ->paginate(20)
-            ->appends($request->query());
-
-        $baseForCount = Pelanggan::query();
-
-        if ($sales) {
-            $baseForCount->where('id_sales', $sales->id_sales);
-        }
-
-        $countLunas = (clone $baseForCount)
-            ->whereHas('langganan.tagihan', function ($q) {
-                $q->whereIn('status_tagihan', ['lunas', 'sudah lunas']);
-            })->count();
-
-        $countBelum = (clone $baseForCount)
-            ->whereHas('langganan.tagihan', function ($q) {
+        // ✅ Tambah total tunggakan per pelanggan (SUM total_tagihan yg belum lunas)
+        $query->withSum([
+            'tagihan as tunggakan_sum' => function ($q) {
                 $q->where('status_tagihan', 'belum lunas');
-            })->count();
+            }
+        ], 'total_tagihan');
 
-        $dataArea = Area::orderBy('nama_area')->get();
+        // ✅ Sorting tunggakan terbesar -> terkecil (default)
+        $direction = ($sort === 'tunggakan_asc') ? 'asc' : 'desc';
+        $query->orderBy('tunggakan_sum', $direction);
 
-        return view('seles2.pelanggan.status-bayar', compact(
-            'pelanggan',
-            'statusBayar',
-            'countLunas',
-            'countBelum',
-            'dataArea',
-        ));
+        // optional biar stabil kalau sama
+        $query->orderBy('nama', 'asc');
     }
+
+    if ($search = $request->get('q')) {
+        $query->where(function ($q2) use ($search) {
+            $q2->where('nama', 'like', "%{$search}%")
+               ->orWhere('nomor_hp', 'like', "%{$search}%")
+               ->orWhere('alamat', 'like', "%{$search}%");
+        });
+    }
+
+    if ($area = $request->get('area')) {
+        $query->whereHas('area', function ($q3) use ($area) {
+            $q3->where('nama_area', 'like', "%{$area}%");
+        });
+    }
+
+    $pelanggan = $query->paginate(20)->appends($request->query());
+
+    // counts tetap
+    $baseForCount = Pelanggan::query();
+    if ($sales) $baseForCount->where('id_sales', $sales->id_sales);
+
+    $countBelum = (clone $baseForCount)
+        ->whereHas('tagihan', fn($q) => $q->where('status_tagihan', 'belum lunas'))
+        ->count();
+
+    $countLunas = (clone $baseForCount)
+        ->whereHas('tagihan')
+        ->whereDoesntHave('tagihan', fn($q) => $q->where('status_tagihan', 'belum lunas'))
+        ->count();
+
+    $dataArea = Area::orderBy('nama_area')->get();
+
+    return view('seles2.pelanggan.status-bayar', compact(
+        'pelanggan',
+        'statusBayar',
+        'countLunas',
+        'countBelum',
+        'dataArea',
+        'sort' // ✅ kirim ke view
+    ));
+}
+
+
+
 }

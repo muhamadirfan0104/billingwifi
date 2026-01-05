@@ -39,6 +39,92 @@
                 </div>
             </div>
         </div>
+@php
+    $successMsg = session()->pull('success'); // sekali pakai, habis itu hilang
+    $lastPembayaranId = session()->pull('last_pembayaran_id');
+
+    // Data customer utk WA (kalau ada)
+    $waNumber = session()->pull('wa_pelanggan'); // optional (lihat controller di bawah)
+    $noInvoice = session()->pull('no_invoice');  // optional
+    $totalBayar = session()->pull('total_bayar'); // optional
+@endphp
+
+@if ($successMsg && $lastPembayaranId)
+    <div class="modal fade" id="modalSuksesBayar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-mobile">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-0 pb-0 bg-white">
+                    <div>
+                        <h6 class="modal-title fw-bold text-dark mb-0">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                            Pembayaran Berhasil
+                        </h6>
+                        <small class="text-muted">{{ $successMsg }}</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+
+                <div class="modal-body pt-3">
+                    <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 rounded-3 mb-3">
+                        <div class="fw-bold text-dark mb-1">Aksi berikutnya:</div>
+                        <div class="small text-muted">Cetak nota atau kirim ke WhatsApp pelanggan.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        {{-- CETAK: buka halaman nota + auto print --}}
+<button type="button"
+        class="btn btn-success rounded-pill fw-bold"
+        id="btnPreviewNota"
+        data-nota-url="{{ route('seles2.tagihan.nota', $lastPembayaranId) }}?embed=1">
+  <i class="bi bi-eye"></i> Lihat Nota (PDF)
+</button>
+
+
+                        {{-- WA: buka WhatsApp --}}
+                        @php
+                            // Normalisasi nomor WA sederhana (jika kamu sudah simpan wa_pelanggan dari controller)
+                            $waLink = null;
+                            if (!empty($waNumber)) {
+                                $digits = preg_replace('/[^0-9]/', '', $waNumber);
+                                // ubah 08xxxx -> 62xxxx
+                                if (str_starts_with($digits, '0')) $digits = '62'.substr($digits, 1);
+
+                                $notaUrl = route('seles2.tagihan.nota', $lastPembayaranId);
+                                $msg = "Halo, ini nota pembayaran.\n".
+                                       "No: ".($noInvoice ?? '-')."\n".
+                                       "Total: Rp ".number_format((int)($totalBayar ?? 0),0,',','.')."\n".
+                                       "Link Nota: ".$notaUrl;
+
+                                $waLink = "https://wa.me/".$digits."?text=".urlencode($msg);
+                            }
+                        @endphp
+
+                        @if ($waLink)
+                            <a target="_blank"
+                               href="{{ $waLink }}"
+                               class="btn btn-outline-success rounded-pill fw-bold">
+                                <i class="bi bi-whatsapp"></i> Kirim ke WhatsApp
+                            </a>
+                        @else
+                            <button type="button" class="btn btn-outline-secondary rounded-pill fw-bold" disabled>
+                                <i class="bi bi-whatsapp"></i> Nomor WA tidak tersedia
+                            </button>
+                        @endif
+
+                        <button type="button"
+                                class="btn btn-light rounded-pill fw-bold text-secondary"
+                                data-bs-dismiss="modal">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+
+
 
         {{-- 3. LIST PELANGGAN --}}
         <div class="pelanggan-list mt-3 px-3 pb-5">
@@ -310,6 +396,37 @@
             <i class="bi bi-hand-index-thumb me-1"></i> Tap kartu untuk melakukan pembayaran
         </div>
     </div>
+
+{{-- MODAL PREVIEW NOTA (iframe) --}}
+<div class="modal fade" id="modalPreviewNota" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 980px;">
+    <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold mb-0">
+          <i class="bi bi-file-earmark-text"></i> Preview Nota (A4)
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0" style="background:#e9ecef;">
+        <iframe id="iframeNota"
+                src="about:blank"
+                style="width:100%; height:78vh; border:0; display:block;"></iframe>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">
+          Tutup
+        </button>
+        <button type="button" class="btn btn-success rounded-pill fw-bold" id="btnPrintIframe">
+          <i class="bi bi-printer"></i> Cetak
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 @endsection
 
 @push('styles')
@@ -415,220 +532,245 @@
         }
     </style>
 @endpush
-
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-input');
-            const statusFilter = document.getElementById('status-filter');
-            const cards = document.querySelectorAll('.pelanggan-card');
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
-            function applyFilter() {
-                const q = (searchInput?.value || '').toLowerCase();
-                const status = (statusFilter?.value || '').toLowerCase();
+  // ======================
+  // 1) FILTER SEARCH
+  // ======================
+  const searchInput = document.getElementById('search-input');
+  const statusFilter = document.getElementById('status-filter');
+  const cards = document.querySelectorAll('.pelanggan-card');
 
-                cards.forEach(card => {
-                    const nama = (card.dataset.nama || '').toLowerCase();
-                    const hp = (card.dataset.hp || '').toLowerCase();
-                    const area = (card.dataset.area || '').toLowerCase();
-                    const alamat = (card.dataset.alamat || '').toLowerCase();
-                    const sBayar = (card.dataset.statusBayar || '').toLowerCase();
+  function applyFilter() {
+    const q = (searchInput?.value || '').toLowerCase();
+    const status = (statusFilter?.value || '').toLowerCase();
 
-                    const textMatch = !q ||
-                        nama.includes(q) ||
-                        hp.includes(q) ||
-                        area.includes(q) ||
-                        alamat.includes(q);
+    cards.forEach(card => {
+      const nama = (card.dataset.nama || '').toLowerCase();
+      const hp = (card.dataset.hp || '').toLowerCase();
+      const area = (card.dataset.area || '').toLowerCase();
+      const alamat = (card.dataset.alamat || '').toLowerCase();
+      const sBayar = (card.dataset.statusBayar || '').toLowerCase();
 
-                    const statusMatch = !status || sBayar === status;
+      const textMatch = !q || nama.includes(q) || hp.includes(q) || area.includes(q) || alamat.includes(q);
+      const statusMatch = !status || sBayar === status;
 
-                    card.style.display = (textMatch && statusMatch) ? '' : 'none';
-                });
-            }
+      card.style.display = (textMatch && statusMatch) ? '' : 'none';
+    });
+  }
 
-            if (searchInput) searchInput.addEventListener('input', applyFilter);
-            if (statusFilter) statusFilter.addEventListener('change', applyFilter);
+  if (searchInput) searchInput.addEventListener('input', applyFilter);
+  if (statusFilter) statusFilter.addEventListener('change', applyFilter);
 
-            // === LOGIKA MODAL (SAMA PERSIS) ===
-            function initFormBayarPeriodeSales() {
-                document.querySelectorAll('.form-bayar-periode-sales').forEach(function(form) {
-                    const inputJumlah = form.querySelector('.input-jumlah-bulan');
-                    const previewText = form.querySelector('.text-preview-bayar');
-                    const warningEl = form.querySelector('.warning-jumlah-bulan');
-                    const btnSubmit = form.querySelector('button[type="submit"]');
 
-                    if (!inputJumlah || !previewText || !btnSubmit) return;
+  // ======================
+  // 2) AUTO SHOW MODAL SUKSES (jika ada)
+  // ======================
+  const modalSuksesEl = document.getElementById('modalSuksesBayar');
+  if (modalSuksesEl && window.bootstrap) {
+    // tutup modal lain biar backdrop gak dobel
+    document.querySelectorAll('.modal.show').forEach(m => {
+      const inst = bootstrap.Modal.getInstance(m);
+      if (inst) inst.hide();
+    });
 
-                    function parseYm(ym) {
-                        const [y, m] = ym.split('-').map(Number);
-                        return {
-                            year: y,
-                            month: m
-                        };
-                    }
+    const ms = new bootstrap.Modal(modalSuksesEl, { backdrop: 'static', keyboard: true });
+    ms.show();
+  }
 
-                    function formatBulanTahun(dateObj) {
-                        const bulanNama = [
-                            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-                        ];
-                        return bulanNama[dateObj.month - 1] + ' ' + dateObj.year;
-                    }
 
-                    function addMonths(dateObj, n) {
-                        let y = dateObj.year;
-                        let m = dateObj.month + n;
-                        while (m > 12) {
-                            m -= 12;
-                            y += 1;
-                        }
-                        while (m < 1) {
-                            m += 12;
-                            y -= 1;
-                        }
-                        return {
-                            year: y,
-                            month: m
-                        };
-                    }
+  // ======================
+  // 3) PREVIEW NOTA (IFRAME MODAL)
+  // ======================
+  const btnPreview = document.getElementById('btnPreviewNota');
+  const iframeNota = document.getElementById('iframeNota');
+  const btnPrintIframe = document.getElementById('btnPrintIframe');
+  const modalPreviewEl = document.getElementById('modalPreviewNota');
 
-                    function ymString(dateObj) {
-                        return `${dateObj.year}-${String(dateObj.month).padStart(2,'0')}`;
-                    }
+  if (btnPreview && iframeNota && modalPreviewEl && window.bootstrap) {
+    btnPreview.addEventListener('click', function () {
+      iframeNota.src = this.dataset.notaUrl || 'about:blank';
+      new bootstrap.Modal(modalPreviewEl).show();
+    });
+  }
 
-                    function isAfterOrEqual(a, b) {
-                        return (a.year > b.year) || (a.year === b.year && a.month >= b.month);
-                    }
+  if (btnPrintIframe && iframeNota) {
+    btnPrintIframe.addEventListener('click', function () {
+      const w = iframeNota.contentWindow;
+      if (!w) return;
+      w.focus();
+      w.print();
+    });
+  }
 
-                    const startYm = form.dataset.startYm;
-                    const hargaPerBulan = Number(form.dataset.hargaPerBulan || 0);
-                    const maxBulan = parseInt(form.dataset.maxBulan || '60', 10);
+  // reset iframe biar gak “nempel” ketika modal ditutup
+  if (modalPreviewEl) {
+    modalPreviewEl.addEventListener('hidden.bs.modal', function () {
+      if (iframeNota) iframeNota.src = 'about:blank';
+    });
+  }
 
-                    let bulanTagihan = [];
-                    try {
-                        bulanTagihan = JSON.parse(form.dataset.bulanTagihan || '[]');
-                    } catch (e) {
-                        bulanTagihan = [];
-                    }
 
-                    const startObj = parseYm(startYm);
+  // ======================
+  // 4) PREVIEW BAYAR PERIODE (INI YANG HILANG)
+  // ======================
+  function initFormBayarPeriodeSales() {
 
-                    function computePaidMonths(jml) {
-                        const paid = [];
-                        if (bulanTagihan.length === 0) {
-                            let curr = {
-                                ...startObj
-                            };
-                            for (let i = 0; i < jml; i++) {
-                                paid.push({
-                                    ...curr
-                                });
-                                curr = addMonths(curr, 1);
-                            }
-                            return paid;
-                        }
-                        const lastExistingYm = bulanTagihan[bulanTagihan.length - 1];
-                        const lastExistingObj = parseYm(lastExistingYm);
-                        let curr = {
-                            ...startObj
-                        };
-                        let count = 0;
-                        while (true) {
-                            const ym = ymString(curr);
-                            if (bulanTagihan.includes(ym)) {
-                                paid.push({
-                                    ...curr
-                                });
-                                count++;
-                                if (count === jml) return paid;
-                            }
-                            if (isAfterOrEqual(curr, lastExistingObj)) break;
-                            curr = addMonths(curr, 1);
-                        }
-                        let base = addMonths(lastExistingObj, 1);
-                        let curr2 = {
-                            ...base
-                        };
-                        while (count < jml) {
-                            paid.push({
-                                ...curr2
-                            });
-                            count++;
-                            curr2 = addMonths(curr2, 1);
-                        }
-                        return paid;
-                    }
+    function parseYm(ym) {
+      const [y, m] = ym.split('-').map(Number);
+      return { year: y, month: m };
+    }
 
-                    function updatePreview() {
-                        let jml = parseInt(inputJumlah.value || '0', 10);
-                        if (isNaN(jml) || jml < 1) {
-                            previewText.innerHTML = 'Masukkan jumlah bulan yang valid.';
-                            return;
-                        }
-                        if (jml > maxBulan) jml = maxBulan;
+    function formatBulanTahun(dateObj) {
+      const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      return bulanNama[dateObj.month - 1] + ' ' + dateObj.year;
+    }
 
-                        const paidMonths = computePaidMonths(jml);
-                        if (paidMonths.length === 0) {
-                            previewText.innerHTML = 'Tidak ada bulan tagihan yang bisa dibayar.';
-                            return;
-                        }
+    function addMonths(dateObj, n) {
+      let y = dateObj.year;
+      let m = dateObj.month + n;
+      while (m > 12) { m -= 12; y += 1; }
+      while (m < 1)  { m += 12; y -= 1; }
+      return { year: y, month: m };
+    }
 
-                        const startLabel = formatBulanTahun(paidMonths[0]);
-                        const endLabel = formatBulanTahun(paidMonths[paidMonths.length - 1]);
-                        const total = jml * hargaPerBulan;
+    function ymString(dateObj) {
+      return `${dateObj.year}-${String(dateObj.month).padStart(2,'0')}`;
+    }
 
-                        const kalimat = (jml === 1) ?
-                            `Bayar 1 bulan: <strong>${startLabel}</strong>.` :
-                            `Bayar ${jml} bulan: <strong>${startLabel}</strong> s.d <strong>${endLabel}</strong>.`;
+    function isAfterOrEqual(a, b) {
+      return (a.year > b.year) || (a.year === b.year && a.month >= b.month);
+    }
 
-                        if (hargaPerBulan > 0) {
-                            previewText.innerHTML = `
-                                ${kalimat}<br>
-                                Total: <strong class="text-success">Rp ${total.toLocaleString('id-ID')}</strong>
-                            `;
-                        } else {
-                            previewText.innerHTML = kalimat +
-                                '<br><span class="text-muted">Total hitung setelah simpan.</span>';
-                        }
-                    }
+    document.querySelectorAll('.form-bayar-periode-sales').forEach(function (form) {
 
-                    function validateJumlah() {
-                        let val = parseInt(inputJumlah.value || '0', 10);
-                        const invalid = isNaN(val) || val <= 0;
-                        if (invalid) {
-                            warningEl?.classList.remove('d-none');
-                            btnSubmit.disabled = true;
-                        } else {
-                            warningEl?.classList.add('d-none');
-                            btnSubmit.disabled = false;
-                        }
-                        return !invalid;
-                    }
+      const inputJumlah = form.querySelector('.input-jumlah-bulan');
+      const previewText = form.querySelector('.text-preview-bayar');
+      const warningEl  = form.querySelector('.warning-jumlah-bulan');
+      const btnSubmit  = form.querySelector('button[type="submit"]');
 
-                    inputJumlah.addEventListener('input', function() {
-                        validateJumlah();
-                        updatePreview();
-                    });
+      if (!inputJumlah || !previewText || !btnSubmit) return;
 
-                    // Trigger input event for +/- buttons
-                    inputJumlah.addEventListener('change', function() {
-                        validateJumlah();
-                        updatePreview();
-                    });
+      const startYm = form.dataset.startYm;
+      const hargaPerBulan = Number(form.dataset.hargaPerBulan || 0);
+      const maxBulan = parseInt(form.dataset.maxBulan || '60', 10);
 
-                    form.addEventListener('submit', function(e) {
-                        if (!validateJumlah()) {
-                            e.preventDefault();
-                            alert('Jumlah bulan tidak valid.');
-                        }
-                    });
+      let bulanTagihan = [];
+      try { bulanTagihan = JSON.parse(form.dataset.bulanTagihan || '[]'); }
+      catch (e) { bulanTagihan = []; }
 
-                    validateJumlah();
-                    updatePreview();
-                });
-            }
+      const startObj = parseYm(startYm);
 
-            initFormBayarPeriodeSales();
-        });
-    </script>
+      function computePaidMonths(jml) {
+        const paid = [];
+
+        if (bulanTagihan.length === 0) {
+          let curr = { ...startObj };
+          for (let i = 0; i < jml; i++) {
+            paid.push({ ...curr });
+            curr = addMonths(curr, 1);
+          }
+          return paid;
+        }
+
+        const lastExistingYm = bulanTagihan[bulanTagihan.length - 1];
+        const lastExistingObj = parseYm(lastExistingYm);
+
+        let curr = { ...startObj };
+        let count = 0;
+
+        while (true) {
+          const ym = ymString(curr);
+          if (bulanTagihan.includes(ym)) {
+            paid.push({ ...curr });
+            count++;
+            if (count === jml) return paid;
+          }
+          if (isAfterOrEqual(curr, lastExistingObj)) break;
+          curr = addMonths(curr, 1);
+        }
+
+        let curr2 = { ...addMonths(lastExistingObj, 1) };
+        while (count < jml) {
+          paid.push({ ...curr2 });
+          count++;
+          curr2 = addMonths(curr2, 1);
+        }
+        return paid;
+      }
+
+      function updatePreview() {
+        let jml = parseInt(inputJumlah.value || '0', 10);
+
+        if (isNaN(jml) || jml < 1) {
+          previewText.innerHTML = 'Masukkan jumlah bulan yang valid.';
+          return;
+        }
+        if (jml > maxBulan) jml = maxBulan;
+
+        const paidMonths = computePaidMonths(jml);
+        if (paidMonths.length === 0) {
+          previewText.innerHTML = 'Tidak ada bulan tagihan yang bisa dibayar.';
+          return;
+        }
+
+        const startLabel = formatBulanTahun(paidMonths[0]);
+        const endLabel   = formatBulanTahun(paidMonths[paidMonths.length - 1]);
+        const total = jml * hargaPerBulan;
+
+        const kalimat = (jml === 1)
+          ? `Bayar 1 bulan: <strong>${startLabel}</strong>.`
+          : `Bayar ${jml} bulan: <strong>${startLabel}</strong> s.d <strong>${endLabel}</strong>.`;
+
+        if (hargaPerBulan > 0) {
+          previewText.innerHTML = `${kalimat}<br>Total: <strong class="text-success">Rp ${total.toLocaleString('id-ID')}</strong>`;
+        } else {
+          previewText.innerHTML = `${kalimat}<br><span class="text-muted">Total hitung setelah simpan.</span>`;
+        }
+      }
+
+      function validateJumlah() {
+        const val = parseInt(inputJumlah.value || '0', 10);
+        const invalid = isNaN(val) || val <= 0;
+
+        if (invalid) {
+          warningEl?.classList.remove('d-none');
+          btnSubmit.disabled = true;
+        } else {
+          warningEl?.classList.add('d-none');
+          btnSubmit.disabled = false;
+        }
+        return !invalid;
+      }
+
+      inputJumlah.addEventListener('input', function () {
+        validateJumlah();
+        updatePreview();
+      });
+
+      inputJumlah.addEventListener('change', function () {
+        validateJumlah();
+        updatePreview();
+      });
+
+      form.addEventListener('submit', function (e) {
+        if (!validateJumlah()) {
+          e.preventDefault();
+          alert('Jumlah bulan tidak valid.');
+        }
+      });
+
+      // init pertama kali
+      validateJumlah();
+      updatePreview();
+    });
+  }
+
+  initFormBayarPeriodeSales();
+
+});
+</script>
 @endpush
+

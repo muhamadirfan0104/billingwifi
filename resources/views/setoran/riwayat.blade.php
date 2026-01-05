@@ -2,286 +2,335 @@
 @section('title', 'Riwayat Setoran')
 
 @section('content')
+@php
+    use Carbon\Carbon;
+
+    $namaBulan = $namaBulan ?? now()->translatedFormat('F');
+
+    $saldoBulan = ($totalSetoranBulan ?? 0) - ($wajibBulan ?? 0); // + = kelebihan, - = sisa
+    $isKelebihanGlobal = $saldoBulan > 0;
+    $jumlahGlobal = abs($saldoBulan);
+
+    $classGlobal = $jumlahGlobal == 0
+        ? 'text-muted'
+        : ($isKelebihanGlobal ? 'text-success' : 'text-danger');
+@endphp
+
 <style>
+    :root {
+        --theme-yellow: #ffc107;
+        --theme-yellow-dark: #e0a800;
+        --theme-yellow-soft: #fff9e6;
+        --text-dark: #212529;
+        --card-radius: 14px;
+    }
+
     .card-soft {
-        border-radius: 18px;
+        border-radius: var(--card-radius);
         box-shadow: 0 6px 20px rgba(0,0,0,.06);
         border: none;
+        overflow: hidden;
     }
-    .btn-nalen {
-        background: #FFC400;
+
+    .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .subtle {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .badge-soft {
+        background: var(--theme-yellow-soft);
+        border: 1px solid rgba(255,193,7,.45);
+        color: #7a5a00;
+        font-weight: 700;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    @media (max-width: 991px) {
+        .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .summary-item {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+    .summary-item .label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 4px;
+    }
+    .summary-item .value {
+        font-weight: 800;
+        color: var(--text-dark);
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        white-space: nowrap;
+    }
+
+    .table-wrap {
+        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table-riwayat {
+        margin-bottom: 0;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .table-riwayat thead th {
+        background: #fafafa;
+        border-bottom: 1px solid #eee;
+        font-size: 12px;
+        font-weight: 800;
+        color: #495057;
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    .table-riwayat tbody td {
+        padding: 11px 10px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f2f2f2;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .table-riwayat tbody tr:hover td {
+        background: #fffdf5;
+    }
+
+    .num {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        white-space: nowrap;
+    }
+
+    .aksi-wrap {
+        display: inline-flex;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .btn-aksi {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 6px 10px;
+        border-radius: 10px;
+        white-space: nowrap;
+    }
+
+    .btn-edit {
+        background: var(--theme-yellow);
         border: none;
-        border-radius: 999px;
-        font-weight: 600;
-        padding-inline: 18px;
+        color: #212529;
     }
-    .btn-nalen:hover {
-        background: #ffb000;
+    .btn-edit:hover { background: var(--theme-yellow-dark); }
+
+    .btn-del {
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        background: transparent;
     }
-    .text-link-yellow {
-        color: #FFC400;
-        font-weight: 600;
-        text-decoration: none;
+    .btn-del:hover {
+        background: #dc3545;
+        color: #fff;
     }
 </style>
 
-<div class="container-fluid py-3">
+{{-- WRAPPER SAMA DENGAN INDEX --}}
+<div class="container-fluid py-4 px-3">
+    <div class="mx-auto" style="max-width: 1550px; width:100%;">
 
-    @php
-        $namaBulan = $namaBulan ?? now()->translatedFormat('F');
-
-        $saldoBulan = ($totalSetoranBulan ?? 0) - ($wajibBulan ?? 0); // + = kelebihan, - = sisa
-        $isKelebihanGlobal = $saldoBulan > 0;
-        $jumlahGlobal = abs($saldoBulan);
-        $classGlobal = $jumlahGlobal == 0
-            ? 'text-muted'
-            : ($isKelebihanGlobal ? 'text-success' : 'text-danger');
-    @endphp
-
-    {{-- Bar atas --}}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="fs-6">
+        {{-- TOP BAR --}}
+        <div class="header-bar">
             <div>
-                <span>Periode: </span>
-                <a href="#" class="text-link-yellow">{{ $namaBulan }} {{ $tahun }}</a>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="subtle">Periode:</span>
+                    <span class="badge badge-soft">{{ $namaBulan }} {{ $tahun }}</span>
+                </div>
+                <div class="subtle mt-1">
+                    Wilayah : <strong class="text-dark">{{ $salesArea->nama_area }}</strong>
+                </div>
+                <div class="subtle">
+                    Sales   : <strong class="text-dark">{{ $salesArea->nama_sales }}</strong>
+                </div>
             </div>
-            <div class="small text-muted">
-                Wilayah: <strong>{{ $salesArea->nama_area }}</strong>
+        </div>
+
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        </div>
-        <div class="text-end">
-            <div class="fw-bold text-uppercase">
-                ADMIN {{ strtoupper(Auth::user()->name ?? 'ADMIN') }}
+        @endif
+
+        {{-- CARD --}}
+        <div class="card card-soft mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background: var(--theme-yellow-soft); border-bottom: 1px solid rgba(255,193,7,.35);">
+                <div class="fw-bold text-dark">
+                    <i class="bi bi-clock-history me-2 text-warning"></i>
+                    Riwayat Setoran
+                    <span class="text-muted fw-normal">– {{ $salesArea->nama_sales }} ({{ $salesArea->nama_area }})</span>
+                </div>
             </div>
-            <small class="text-muted">
-                Sales: <strong>{{ $salesArea->nama_sales }}</strong>
-            </small>
-        </div>
-    </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+            <div class="card-body">
 
-    {{-- KARTU RIWAYAT --}}
-    <div class="card card-soft mb-3">
-        <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center"
-             style="border-radius: 18px 18px 0 0;">
-            <span class="fw-semibold">
-                Riwayat Setoran – {{ $salesArea->nama_sales }} ({{ $salesArea->nama_area }})
-            </span>
-
-            <button type="button"
-                    class="btn btn-nalen btn-sm"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalTambahSetoran">
-                Tambah Setoran
-            </button>
-        </div>
-
-        <div class="card-body">
-
-            {{-- STATUS BULAN INI --}}
-            <div class="mb-3">
-                <div>
-                    Posisi bulan ini:
-                    <span class="{{ $classGlobal }}">
+                {{-- STATUS --}}
+                <div class="mb-2">
+                    <span class="subtle">Posisi bulan ini:</span>
+                    <span class="fw-bold {{ $classGlobal }}">
                         @if($jumlahGlobal == 0)
-                            Pas: Rp 0
+                            Pas (Rp 0)
                         @elseif($isKelebihanGlobal)
-                            Kelebihan: Rp {{ number_format($jumlahGlobal, 0, ',', '.') }}
+                            Kelebihan (Rp {{ number_format($jumlahGlobal, 0, ',', '.') }})
                         @else
-                            Sisa: Rp {{ number_format($jumlahGlobal, 0, ',', '.') }}
+                            Sisa (Rp {{ number_format($jumlahGlobal, 0, ',', '.') }})
                         @endif
                     </span>
                 </div>
+
+                {{-- RINGKASAN --}}
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="label">Wajib Setor</div>
+                        <div class="value num">Rp {{ number_format($wajibBulan ?? 0, 0, ',', '.') }}</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="label">Total Setoran</div>
+                        <div class="value num">Rp {{ number_format($totalSetoranBulan ?? 0, 0, ',', '.') }}</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="label">Kelebihan</div>
+                        <div class="value num text-success">Rp {{ number_format($kelebihanBulan ?? 0, 0, ',', '.') }}</div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="label">Sisa Kewajiban</div>
+                        <div class="value num {{ ($sisaBulan ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
+                            Rp {{ number_format($sisaBulan ?? 0, 0, ',', '.') }}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TABEL RIWAYAT --}}
+                <div class="table-wrap">
+                    <div class="table-responsive">
+                        <table class="table table-riwayat align-middle">
+                            <colgroup>
+                                <col style="width:70px">
+                                <col style="width:150px">
+                                <col style="width:160px">
+                                <col style="width:170px">
+                                <col>
+                                <col style="width:190px">
+                            </colgroup>
+
+                            <thead>
+                                <tr>
+                                    <th class="text-center">No</th>
+                                    <th>Tanggal</th>
+                                    <th class="text-end">Nominal</th>
+                                    <th>Diterima</th>
+                                    <th>Catatan</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @forelse($setorans as $i => $row)
+                                    <tr>
+                                        <td class="text-center text-muted">{{ sprintf('%03d', $i+1) }}</td>
+                                        <td>{{ Carbon::parse($row->tanggal_setoran)->format('d M Y') }}</td>
+
+                                        <td class="text-end fw-bold text-success num">
+                                            Rp {{ number_format($row->nominal, 0, ',', '.') }}
+                                        </td>
+
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                {{ $row->nama_admin }}
+                                            </span>
+                                        </td>
+
+                                        <td title="{{ $row->catatan ?? '-' }}">
+                                            {{ $row->catatan ?? '-' }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            <div class="aksi-wrap">
+                                                <a href="{{ route('admin.setoran.edit', [
+                                                        'id_setoran' => $row->id_setoran,
+                                                        'tahun'      => $tahun,
+                                                        'bulan'      => $bulan,
+                                                    ]) }}"
+                                                   class="btn btn-aksi btn-edit">
+                                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                                </a>
+
+                                                <form action="{{ route('admin.setoran.destroy', $row->id_setoran) }}"
+                                                      method="POST"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Yakin ingin menghapus setoran ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <input type="hidden" name="tahun" value="{{ $tahun }}">
+                                                    <input type="hidden" name="bulan" value="{{ $bulan }}">
+                                                    <button type="submit" class="btn btn-aksi btn-del">
+                                                        <i class="bi bi-trash3 me-1"></i>Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            Belum ada setoran di bulan ini.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
-
-            {{-- RINGKASAN BULAN INI --}}
-            <div class="mb-3">
-                <div>
-                    Wajib setor bulan ini:
-                    <strong>Rp {{ number_format($wajibBulan, 0, ',', '.') }}</strong>
-                </div>
-                <div>
-                    Total setoran bulan ini:
-                    <strong>Rp {{ number_format($totalSetoranBulan, 0, ',', '.') }}</strong>
-                </div>
-                <div>
-                    Kelebihan bulan ini:
-                    <strong class="text-success">
-                        Rp {{ number_format($kelebihanBulan ?? 0, 0, ',', '.') }}
-                    </strong>
-                </div>
-                <div>
-                    Sisa kewajiban bulan ini:
-                    <span class="{{ $sisaBulan > 0 ? 'text-danger' : 'text-success' }}">
-                        Rp {{ number_format($sisaBulan, 0, ',', '.') }}
-                    </span>
-                </div>
-            </div>
-
-            {{-- TABEL RIWAYAT SETORAN BULAN INI --}}
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:60px">No</th>
-                            <th>Tanggal Setor</th>
-                            <th class="text-end">Nominal</th>
-                            <th>Diterima</th>
-                            <th>Catatan</th>
-                            <th class="text-center" style="width:160px">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($setorans as $i => $row)
-                            <tr>
-                                <td>{{ sprintf('%03d', $i+1) }}</td>
-                                <td>{{ \Carbon\Carbon::parse($row->tanggal_setoran)->format('d M Y') }}</td>
-                                <td class="text-end text-success">
-                                    Rp {{ number_format($row->nominal, 0, ',', '.') }}
-                                </td>
-                                <td>{{ $row->nama_admin }}</td>
-                                <td>{{ $row->catatan ?? '-' }}</td>
-                                <td class="text-center">
-                                    {{-- EDIT --}}
-                                    <a href="{{ route('admin.setoran.edit', [
-                                            'id_setoran' => $row->id_setoran,
-                                            'tahun'      => $tahun,
-                                            'bulan'      => $bulan,
-                                        ]) }}"
-                                       class="btn btn-warning btn-sm">
-                                        Edit
-                                    </a>
-
-                                    {{-- HAPUS --}}
-                                    <form action="{{ route('admin.setoran.destroy', $row->id_setoran) }}"
-                                          method="POST"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Yakin ingin menghapus setoran ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <input type="hidden" name="tahun" value="{{ $tahun }}">
-                                        <input type="hidden" name="bulan" value="{{ $bulan }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            Hapus
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-3">
-                                    Belum ada setoran di bulan ini.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
         </div>
+
+        <a href="{{ route('admin.setoran.index', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
+           class="btn btn-outline-secondary btn-sm">
+            &laquo; Kembali ke daftar wilayah
+        </a>
+
     </div>
-
-    <a href="{{ route('admin.setoran.index', [
-            'tahun' => $tahun,
-            'bulan' => $bulan,
-        ]) }}" class="btn btn-outline-secondary btn-sm">
-        &laquo; Kembali ke daftar wilayah
-    </a>
-</div>
-
-{{-- MODAL TAMBAH SETORAN --}}
-<div class="modal fade" id="modalTambahSetoran" tabindex="-1" aria-labelledby="modalTambahSetoranLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius: 18px;">
-      <div class="modal-header bg-warning text-white" style="border-radius: 18px 18px 0 0;">
-        <h6 class="modal-title" id="modalTambahSetoranLabel">
-            Tambah Setoran – {{ $salesArea->nama_sales }} ({{ $salesArea->nama_area }})
-        </h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <form action="{{ route('admin.setoran.store') }}" method="POST">
-        @csrf
-        <input type="hidden" name="id_sales" value="{{ $salesArea->id_sales }}">
-        <input type="hidden" name="id_area"  value="{{ $salesArea->id_area }}">
-
-        <div class="modal-body">
-          <p class="mb-2">
-            <small>Posisi bulan ini:
-                <span class="{{ $classGlobal }}">
-                    @if($jumlahGlobal == 0)
-                        Pas: Rp 0
-                    @elseif($isKelebihanGlobal)
-                        Kelebihan: Rp {{ number_format($jumlahGlobal, 0, ',', '.') }}
-                    @else
-                        Sisa: Rp {{ number_format($jumlahGlobal, 0, ',', '.') }}
-                    @endif
-                </span>
-            </small>
-          </p>
-
-          {{-- Periode Setoran --}}
-          <div class="mb-3">
-            <label class="form-label small">Periode Setoran</label>
-            <div class="d-flex gap-2">
-                <select name="bulan" class="form-select form-select-sm" style="max-width: 140px;">
-                    @foreach (range(1, 12) as $m)
-                        <option value="{{ $m }}" {{ (int)$bulan === $m ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}
-                        </option>
-                    @endforeach
-                </select>
-                <select name="tahun" class="form-select form-select-sm" style="max-width: 110px;">
-                    @foreach (range(now()->year - 2, now()->year + 1) as $y)
-                        <option value="{{ $y }}" {{ (int)$tahun === $y ? 'selected' : '' }}>
-                            {{ $y }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Nominal</label>
-            <div class="input-group input-group-sm">
-              <span class="input-group-text">Rp</span>
-              <input type="number" name="nominal" class="form-control"
-                     min="1" step="1" value="{{ old('nominal') }}" required>
-            </div>
-            @error('nominal')
-              <small class="text-danger">{{ $message }}</small>
-            @enderror
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label">Catatan</label>
-            <textarea name="catatan" rows="3"
-                      class="form-control form-control-sm"
-                      placeholder="Opsional...">{{ old('catatan') }}</textarea>
-            @error('catatan')
-              <small class="text-danger">{{ $message }}</small>
-            @enderror
-          </div>
-
-        </div>
-
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            Batal
-          </button>
-          <button type="submit" class="btn btn-nalen btn-sm">
-            Tambah
-          </button>
-        </div>
-
-      </form>
-    </div>
-  </div>
 </div>
 @endsection

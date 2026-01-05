@@ -9,27 +9,40 @@
             </a>
             <h5 class="mb-0 fw-bold">Daftar Pelanggan</h5>
         </div>
+{{-- FILTER & PENCARIAN (Clean Version) --}}
+<div class="filter-wrapper mt-3 px-2">
+    {{-- Bar 1: Search Box --}}
+    <div class="mb-2">
+        <input type="text" id="search-input" class="form-control-custom" 
+               placeholder="Cari nama, HP, atau alamat...">
+    </div>
 
-        {{-- FILTER & PENCARIAN --}}
-        <div class="filter-bar mt-3 px-1">
-            <div class="flex-grow-1 me-2">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="search-input"
-                        class="form-control form-control-sm border-start-0 rounded-end-pill ps-0"
-                        placeholder="Cari nama, HP, atau alamat...">
-                </div>
-            </div>
-            <div style="width: 140px;">
-                <select id="status-filter" class="form-select form-select-sm rounded-pill">
-                    <option value="">Semua Status</option>
-                    <option value="lunas">Sudah Bayar</option>
-                    <option value="belum">Belum Bayar</option>
-                </select>
-            </div>
+    {{-- Bar 2: Area & Status --}}
+    <div class="row g-2">
+        <div class="col-6">
+            <select id="area-filter" class="form-select-custom">
+                <option value="">Semua Area</option>
+                @foreach ($dataArea as $a)
+                    <option value="{{ $a->nama_area }}">{{ strtoupper($a->nama_area) }}</option>
+                @endforeach
+            </select>
         </div>
+        <div class="col-6">
+            <select id="status-filter" class="form-select-custom">
+                <option value="">Semua Status</option>
+                <option value="lunas">Sudah Bayar</option>
+                <option value="belum">Belum Bayar</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="px-3 mt-3">
+    <div class="count-badge">
+        Menampilkan <span id="count-shown">{{ $pelanggan->count() }}</span> pelanggan
+        dari {{ $pelanggan->total() }} total
+    </div>
+</div>
+
 
         {{-- LIST PELANGGAN --}}
         <div class="pelanggan-list mt-3">
@@ -140,7 +153,7 @@
 
                             {{-- Nominal --}}
                             <div class="text-end w-100 mt-2 pt-2 border-top border-light">
-                                <div class="small text-muted mb-0" style="font-size: 0.7rem;">Total Tagihan</div>
+                                <div class="small text-muted mb-0" style="font-size: 0.7rem;">Harga Paket</div>
                                 <div class="fw-bold text-dark" style="font-size: 1.1rem;">
                                     <span class="text-secondary small me-1" style="font-size: 0.8rem;">Rp</span>
                                     {{ number_format($nominalTagihan, 0, ',', '.') }}
@@ -218,34 +231,50 @@
             background: rgba(255, 255, 255, 0.4);
             transform: scale(0.9);
         }
+/* Styling Filter Tanpa Ikon */
+.filter-wrapper {
+    margin-top: -20px !important; 
+    position: relative;
+    z-index: 20;
+}
 
-        /* 2. FILTER BAR */
-        .filter-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            position: relative;
-            z-index: 11;
-            margin-top: -20px !important;
-            /* Naik ke atas menimpa header */
-            padding: 0 16px;
-        }
+.form-control-custom, 
+.form-select-custom {
+    width: 100%;
+    height: 45px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px; /* Sudut membulat halus */
+    font-size: 0.9rem;
+    color: #334155;
+    padding: 0 15px; /* Padding merata kiri-kanan */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
 
-        .filter-bar input,
-        .filter-bar select,
-        .input-group-text {
-            border: 1px solid #f3f4f6;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            height: 42px;
-            /* Lebih tinggi agar mudah disentuh */
-        }
+/* Warna saat diklik */
+.form-control-custom:focus, 
+.form-select-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
 
-        .filter-bar input:focus,
-        .filter-bar select:focus {
-            border-color: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
-        }
+/* Khusus Select: Tambahkan tanda panah minimalis manual */
+.form-select-custom {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 12px;
+}
 
+/* Placeholder color */
+.form-control-custom::placeholder {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
         /* 3. CARD PELANGGAN */
         .pelanggan-card {
             background: #ffffff;
@@ -297,45 +326,113 @@
             inset: 0;
             z-index: 5;
         }
+
+     
+/* Styling Filter & Search */
+.filter-wrapper {
+    margin-top: -20px !important; /* Menaikkan filter ke atas header melengkung */
+    position: relative;
+    z-index: 20;
+}
+
+.form-control-custom, .form-select-custom {
+    width: 100%;
+    height: 45px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #475569;
+    padding-left: 40px; /* Space untuk ikon */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.form-control-custom:focus, .form-select-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+/* Container untuk Ikon */
+.search-container, .select-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon, .select-icon {
+    position: absolute;
+    left: 15px;
+    color: #94a3b8;
+    font-size: 1rem;
+    z-index: 5;
+}
+
+/* Custom Dropdown Arrow */
+.form-select-custom {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+}
+
+.count-badge {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 6px 14px;
+    border-radius: 8px;
+    display: inline-block;
+    font-size: 0.75rem;
+}
     </style>
 @endpush
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search-input');
-            const statusFilter = document.getElementById('status-filter');
-            const cards = document.querySelectorAll('.pelanggan-card');
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const areaFilter = document.getElementById('area-filter');
+    const cards = document.querySelectorAll('.pelanggan-card');
+    const countShown = document.getElementById('count-shown');
 
-            function applyFilter() {
-                const q = (searchInput.value || '').toLowerCase();
-                const status = (statusFilter.value || '').toLowerCase(); // '' | 'lunas' | 'belum'
+    function applyFilter() {
+        const q = (searchInput?.value || '').toLowerCase();
+        const status = (statusFilter?.value || '').toLowerCase(); // '' | 'lunas' | 'belum'
+        const areaSelected = (areaFilter?.value || '').toLowerCase();
 
-                cards.forEach(card => {
-                    const nama = (card.dataset.nama || '').toLowerCase();
-                    const hp = (card.dataset.hp || '').toLowerCase();
-                    const area = (card.dataset.area || '').toLowerCase();
-                    const alamat = (card.dataset.alamat || '').toLowerCase();
-                    const sBayar = (card.dataset.statusBayar || '').toLowerCase();
+        let shown = 0;
 
-                    const textMatch = !q ||
-                        nama.includes(q) ||
-                        hp.includes(q) ||
-                        area.includes(q) ||
-                        alamat.includes(q);
+        cards.forEach(card => {
+            const nama = (card.dataset.nama || '').toLowerCase();
+            const hp = (card.dataset.hp || '').toLowerCase();
+            const area = (card.dataset.area || '').toLowerCase();
+            const alamat = (card.dataset.alamat || '').toLowerCase();
+            const sBayar = (card.dataset.statusBayar || '').toLowerCase();
 
-                    const statusMatch = !status || sBayar === status;
+            const textMatch = !q ||
+                nama.includes(q) ||
+                hp.includes(q) ||
+                area.includes(q) ||
+                alamat.includes(q);
 
-                    card.style.display = (textMatch && statusMatch) ? '' : 'none';
-                });
-            }
+            const statusMatch = !status || sBayar === status;
+            const areaMatch = !areaSelected || area === areaSelected;
 
-            if (searchInput) {
-                searchInput.addEventListener('input', applyFilter);
-            }
-            if (statusFilter) {
-                statusFilter.addEventListener('change', applyFilter);
-            }
+            const ok = textMatch && statusMatch && areaMatch;
+            card.style.display = ok ? '' : 'none';
+            if (ok) shown++;
         });
-    </script>
+
+        if (countShown) countShown.textContent = shown;
+    }
+
+    searchInput?.addEventListener('input', applyFilter);
+    statusFilter?.addEventListener('change', applyFilter);
+    areaFilter?.addEventListener('change', applyFilter);
+});
+</script>
+
 @endpush

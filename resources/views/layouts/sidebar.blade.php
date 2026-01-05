@@ -116,7 +116,7 @@
                 
                 <a href="{{ route('laporan.index', ['type' => 'rekap']) }}"
                    class="sidebar-sublink {{ request()->fullUrlIs('*type=rekap*') ? 'active-sub' : '' }}">
-                    Laporan & Rekap
+                    Laporan
                 </a>
 
                 {{-- DATA SALES --}}
@@ -130,10 +130,12 @@
         {{-- ============================================================= --}}
         <div class="sidebar-group">
             @php
-                // FIX: Menghapus request()->is('admin*') agar tidak bentrok dengan Pembayaran Pelanggan
-                // Cukup gunakan 'pengaturan*' karena semua sub-menu pengaturan berawalan 'pengaturan/'
-                $isPengaturanActive = request()->is('pengaturan*');
+                $isPengaturanActive =
+                    request()->is('pengaturan*') ||
+                    request()->is('import*') ||
+                    request()->routeIs('import.*');
             @endphp
+
 
             <a class="sidebar-link pengaturan-toggle {{ $isPengaturanActive ? '' : 'collapsed' }}"
                 data-bs-toggle="collapse" data-bs-target="#menuPengaturan"
@@ -165,6 +167,11 @@
                     class="sidebar-sublink {{ request()->is('pengaturan/paket-layanan') ? 'active-sub' : '' }}">
                     Paket Layanan
                 </a>
+                <a href="{{ route('import.pelanggan') }}"
+                    class="sidebar-sublink {{ request()->routeIs('import.*') ? 'active-sub' : '' }}">
+                        Import Data
+                </a>
+
             </div>
         </div>
 

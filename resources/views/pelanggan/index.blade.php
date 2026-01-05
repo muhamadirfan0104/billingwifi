@@ -1,7 +1,18 @@
 @extends('layouts.master')
 @section('title', 'Data Pelanggan')
 @section('content')
+
 <style>
+    .table-admin td:first-child,
+.table-admin th:first-child{
+  vertical-align: middle;
+}
+.row-check, #check-all{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+}
+
     /* --- ADMIN YELLOW THEME VARIABLES --- */
     :root {
         --theme-yellow: #ffc107;       /* Kuning Bootstrap Warning */
@@ -150,14 +161,23 @@
             <div class="text-muted small">Kelola data pelanggan dan layanan</div>
         </div>
         
-        <div class="d-flex gap-2 align-items-center">
-            <span class="stat-badge">
-                <i class="bi bi-folder2-open me-1"></i> Total: {{ $totalPelanggan }}
-            </span>
-            <a href="{{ route('pelanggan.create') }}" class="btn btn-admin-yellow">
-                <i class="bi bi-plus-lg me-1"></i> Tambah Data
-            </a>
-        </div>
+<div class="d-flex gap-2 align-items-center">
+<span class="stat-badge">
+    <i class="bi bi-folder2-open me-1"></i>
+    Total: <span id="total-pelanggan">{{ $pelanggan->total() ?? $totalPelanggan }}</span>
+</span>
+
+
+
+    <button type="button" class="btn btn-danger fw-semibold" id="btn-bulk-delete" disabled>
+        <i class="bi bi-trash me-1"></i> Hapus Terpilih
+    </button>
+
+    <a href="{{ route('pelanggan.create') }}" class="btn btn-admin-yellow">
+        <i class="bi bi-plus-lg me-1"></i> Tambah Data
+    </a>
+</div>
+
     </div>
 
     {{-- FILTER CARD --}}
@@ -217,7 +237,12 @@
                 <table class="table table-admin mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-4" width="5%">No</th>
+                            <th class="ps-4" style="width:40px;">
+                            <input type="checkbox" id="check-all" class="row-check">
+                            </th>
+
+                            <th style="width:70px;">No</th>
+                            <th style="width:40px;">ID</th>
                             <th>Nama</th>
                             <th>Area</th>
                             <th>Sales</th>
@@ -225,9 +250,10 @@
                             <th>Tanggal Aktif</th>
                             <th>IP Address</th>
                             <th>Status</th>
-                            <th class="text-center">Aksi</th>
+                            <th class="text-center" style="width:220px;">Aksi</th>
                         </tr>
                     </thead>
+
                     <tbody id="pelanggan-table-body">
                         @include('pelanggan.partials.table_rows', ['pelanggan' => $pelanggan])
                     </tbody>
@@ -243,14 +269,38 @@
 </div>
 
 @endsection
-
 @push('scripts')
-{{-- SCRIPT ASLI TIDAK DIUBAH SAMA SEKALI --}}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    let currentPage   = 1;
-    let currentAjax   = null; 
+    let currentPage = 1;
+    let currentAjax = null;
+
+    function updateBulkButton() {
+        const checkedCount = $('.row-check:checked').length;
+        $('#btn-bulk-delete').prop('disabled', checkedCount === 0);
+        $('#bulk-delete-count').text(checkedCount);
+    }
+
+    function resetBulkUI() {
+        $('#check-all').prop('checked', false);
+        $('#btn-bulk-delete').prop('disabled', true);
+        $('#bulk-delete-count').text(0);
+    }
+
+    function updateUrl(search, area, sales, page) {
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (area)   params.set('area', area);
+        if (sales)  params.set('sales', sales);
+        if (page > 1) params.set('page', page);
+
+        const newUrl = params.toString()
+            ? '{{ route("pelanggan.index") }}?' + params.toString()
+            : '{{ route("pelanggan.index") }}';
+
+        window.history.replaceState({}, '', newUrl);
+    }
 
     function loadData(page = 1) {
         currentPage = page;
@@ -269,7 +319,7 @@ $(document).ready(function() {
         currentAjax = $.ajax({
             url: '{{ route("pelanggan.index") }}',
             type: 'GET',
-            cache: false, 
+            cache: false,
             data: {
                 search: search,
                 area:   area,
@@ -280,11 +330,18 @@ $(document).ready(function() {
             success: function(response) {
                 $('#pelanggan-table-body').html(response.html);
                 $('#pagination-wrapper').html(response.pagination);
+
+                if (response.totalFiltered !== undefined) {
+                    $('#total-pelanggan').text(response.totalFiltered);
+                }
+
                 $('#table-container').show();
                 $('#loading-spinner').hide();
-
+                resetBulkUI();
                 updateUrl(search, area, sales, page);
             },
+
+
             error: function(xhr, status) {
                 if (status === 'abort') return;
 
@@ -299,55 +356,41 @@ $(document).ready(function() {
         });
     }
 
-    function updateUrl(search, area, sales, page) {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        if (area)   params.set('area', area);
-        if (sales)  params.set('sales', sales);
-        if (page > 1) params.set('page', page);
-
-        const newUrl = params.toString()
-            ? '{{ route("pelanggan.index") }}?' + params.toString()
-            : '{{ route("pelanggan.index") }}';
-
-        window.history.replaceState({}, '', newUrl);
-    }
-
-    // SEARCH REALTIME
+    // =========================
+    // FILTER + SEARCH + PAGINATION
+    // =========================
     $('#search-input').on('input', function() {
         loadData(1);
     });
 
-    // FILTER AREA
     $('#area-filter').on('change', function() {
         loadData(1);
     });
 
-    // FILTER SALES
     $('#sales-filter').on('change', function() {
         loadData(1);
     });
 
-    // PAGINATION
-    $(document).on('click', '.custom-pagination a', function(e) { // Jaga-jaga kalau class custom dipakai
+    $(document).on('click', '.custom-pagination a', function(e) {
         e.preventDefault();
         const url  = new URL($(this).attr('href'));
         const page = url.searchParams.get('page') || 1;
         loadData(page);
     });
-    
-    // Pagination Normal Bootstrap
+
     $(document).on('click', '.pagination a', function(e) {
         e.preventDefault();
         const href = $(this).attr('href');
-        if(href){
+        if (href) {
             const url  = new URL(href);
             const page = url.searchParams.get('page') || 1;
             loadData(page);
         }
     });
 
-    // KLIK HAPUS
+    // =========================
+    // DELETE SINGLE (MODAL)
+    // =========================
     $(document).on('click', '.btn-delete', function(e) {
         e.preventDefault();
         const url = $(this).data('url');
@@ -358,7 +401,6 @@ $(document).ready(function() {
         deleteModal.show();
     });
 
-    // SUBMIT HAPUS (AJAX)
     $('#deleteForm').on('submit', function(e) {
         e.preventDefault();
         const form = $(this);
@@ -374,17 +416,87 @@ $(document).ready(function() {
             success: function(response) {
                 const deleteModal = bootstrap.Modal.getInstance($('#deleteModal')[0]);
                 deleteModal.hide();
-                submitButton.prop('disabled', false).text('Hapus');
-                loadData(currentPage); 
+
+                submitButton.prop('disabled', false).text('Ya, Hapus');
+                loadData(currentPage);
             },
             error: function(xhr) {
-                submitButton.prop('disabled', false).text('Hapus');
+                submitButton.prop('disabled', false).text('Ya, Hapus');
                 console.error(xhr.responseText);
                 alert('Terjadi kesalahan saat menghapus data');
             }
         });
     });
 
+    // =========================
+    // BULK DELETE
+    // =========================
+    $(document).on('change', '#check-all', function() {
+        const isChecked = $(this).is(':checked');
+        $('.row-check').prop('checked', isChecked);
+        updateBulkButton();
+    });
+
+    $(document).on('change', '.row-check', function() {
+        const total = $('.row-check').length;
+        const checked = $('.row-check:checked').length;
+
+        $('#check-all').prop('checked', total > 0 && total === checked);
+        updateBulkButton();
+    });
+
+    $(document).on('click', '#btn-bulk-delete', function() {
+        updateBulkButton();
+        const modal = new bootstrap.Modal($('#bulkDeleteModal')[0]);
+        modal.show();
+    });
+
+    $(document).on('click', '#confirm-bulk-delete', function() {
+        const ids = $('.row-check:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (ids.length === 0) return;
+
+        const btn = $(this);
+        btn.prop('disabled', true).text('Menghapus...');
+
+        $.ajax({
+            url: '{{ route("pelanggan.bulkDestroy") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                _method: 'DELETE',
+                ids: ids
+            },
+            success: function(res) {
+                const modalInstance = bootstrap.Modal.getInstance($('#bulkDeleteModal')[0]);
+                modalInstance.hide();
+
+                btn.prop('disabled', false).text('Ya, Hapus');
+                resetBulkUI();
+
+                loadData(currentPage);
+            },
+            error: function(xhr) {
+                console.error(xhr.responseText);
+
+                let msg = 'Terjadi kesalahan saat menghapus data.';
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    if (res.message) msg = res.message;
+                    if (res.debug) msg += "\n\nDEBUG: " + res.debug;
+                } catch (e) {}
+
+                alert(msg);
+                btn.prop('disabled', false).text('Ya, Hapus');
+            }
+        });
+    });
+
+    // =========================
+    // LOAD INITIAL FILTERS
+    // =========================
     function loadInitialFilters() {
         const urlParams = new URLSearchParams(window.location.search);
         const search = urlParams.get('search');
@@ -403,3 +515,4 @@ $(document).ready(function() {
 });
 </script>
 @endpush
+ 
