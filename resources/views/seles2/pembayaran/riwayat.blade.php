@@ -1,5 +1,5 @@
 @extends('seles2.layout.master')
-
+@section('title', 'Riwayat Pembayaran')
 @php
     use Carbon\Carbon;
 @endphp

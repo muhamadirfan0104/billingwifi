@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Data Pelanggan')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME VARIABLES --- */

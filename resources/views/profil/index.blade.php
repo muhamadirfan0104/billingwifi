@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Profil')
 @section('content')
     {{-- Load SweetAlert2 CDN (Wajib ada untuk modal) --}}
 

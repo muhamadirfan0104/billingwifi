@@ -1,9 +1,9 @@
 @extends('layouts.master')
-
+@section('title', 'Tambah Paket Layanan')
 @section('content')
 <div class="container-fluid p-4">
 
-    <h4 class="fw-bold mb-4">Tambah Paket</h4>
+    <h4 class="fw-bold mb-4">Tambah Paket Layanan</h4>
 
     <div class="card shadow-sm border-0 p-4" style="max-width: 600px;">
         <form action="{{ route('paket-layanan.store') }}" method="POST">

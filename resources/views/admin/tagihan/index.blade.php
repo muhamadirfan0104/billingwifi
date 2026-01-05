@@ -1,4 +1,5 @@
 @extends('layouts.master')
+@section('title', 'Pembayaran Pelanggan')
 @php
     use Carbon\Carbon;
 @endphp
@@ -126,7 +127,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="page-title mb-1">
-                <i class="bi bi-wallet2 text-warning me-2"></i>Pembayaran Tagihan
+                <i class="bi bi-wallet2 text-warning me-2"></i>Pembayaran Pelanggan
             </h4>
             <div class="text-muted small">Kelola pembayaran tagihan pelanggan secara manual (Admin)</div>
         </div>

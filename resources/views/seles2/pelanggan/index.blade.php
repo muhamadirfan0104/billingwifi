@@ -1,4 +1,5 @@
 @extends('seles2.layout.master')
+@section('title', 'Data Pelanggan')
 @section('content')
     <div class="pelanggan-page">
         {{-- HEADER (Tema Amber) --}}

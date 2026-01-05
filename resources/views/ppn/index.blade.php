@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Pengaturan PPN')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME (CONSISTENT) --- */

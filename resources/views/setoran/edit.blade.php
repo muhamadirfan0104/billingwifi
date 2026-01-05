@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Edit Setoran Wilayah')
+@section('title', 'Edit Setoran')
 
 @section('content')
 <style>

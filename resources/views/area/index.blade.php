@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Area')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME (COMPACT) --- */
@@ -104,7 +104,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="page-title mb-1">
-                <i class="bi bi-geo-alt-fill text-warning me-2"></i>Pengaturan Area
+                <i class="bi bi-geo-alt-fill text-warning me-2"></i>Area
             </h4>
             <div class="text-muted small">Kelola wilayah dan sales area</div>
         </div>

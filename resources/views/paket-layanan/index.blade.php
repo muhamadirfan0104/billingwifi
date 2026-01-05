@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Paket Layanan')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME (CONSISTENT COMPACT) --- */
@@ -104,7 +104,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="page-title mb-1">
-                <i class="bi bi-box-seam text-warning me-2"></i>Daftar Paket
+                <i class="bi bi-box-seam text-warning me-2"></i>Daftar Paket Layanan
             </h4>
             <div class="text-muted small">Kelola paket layanan internet</div>
         </div>

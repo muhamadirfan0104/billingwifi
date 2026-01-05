@@ -183,7 +183,7 @@
         {{-- GRID CARD REKAP --}}
         <div class="card-admin p-0 mb-4" style="overflow: hidden;">
             <div class="bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
-                <span class="fw-bold text-dark"><i class="bi bi-check2-square me-2 text-warning"></i>Pilih Sales / Admin</span>
+                <span class="fw-bold text-dark"><i class="bi bi-check2-square me-2 text-warning"></i>Pilih Sales - Area</span>
                 <div class="small">
                     <a href="javascript:void(0)" onclick="toggleAll(true)" class="text-decoration-none fw-bold text-warning me-2">Centang semua</a>
                     <a href="javascript:void(0)" onclick="toggleAll(false)" class="text-decoration-none text-muted">Kosongkan</a>

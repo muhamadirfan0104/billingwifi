@@ -1,5 +1,5 @@
 @extends('seles2.layout.master')
-
+@section('title', 'Pengaturan Akun')
 @section('content')
     <style>
         /* --- CSS KHUSUS HALAMAN PROFIL MOBILE --- */

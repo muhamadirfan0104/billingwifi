@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Sales - Setoran - Riwayat per Wilayah')
+@section('title', 'Riwayat Setoran')
 
 @section('content')
 <style>

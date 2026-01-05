@@ -1,5 +1,5 @@
 @extends('seles2.layout.master')
-
+@section('title', 'Pengajuan Pengeluaran')
 @php
     use Carbon\Carbon;
 @endphp
@@ -54,11 +54,11 @@
                             </option>
                         </select>
                     </div>
-                    <div class="flex-grow-1">
-                        <input type="date" name="tanggal"
-                            class="form-control form-control-sm rounded-pill shadow-sm text-muted"
-                            value="{{ request('tanggal') }}">
-                    </div>
+                    <!--<div class="flex-grow-1">-->
+                    <!--    <input type="date" name="tanggal"-->
+                    <!--        class="form-control form-control-sm rounded-pill shadow-sm text-muted"-->
+                    <!--        value="{{ request('tanggal') }}">-->
+                    <!--</div>-->
                 </div>
             </form>
         </div>
@@ -119,7 +119,7 @@
                                     {{ $row->nama_pengeluaran }}
                                 </div>
                                     <div class="text-muted small text-truncate" style="font-size: 0.7rem;">
-                                        Sales: {{ auth()->user()->name }}
+                                        Wilayah:
                                         @if(!empty($row->nama_area))
                                             · {{ $row->nama_area }}
                                         @endif

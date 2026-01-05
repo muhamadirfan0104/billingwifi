@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Pembukuan Global')
+@section('title', 'Data Pembukuan')
 
 @section('content')
 @php
@@ -115,7 +115,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="page-title mb-1">
-                <i class="bi bi-journal-bookmark-fill text-warning me-2"></i>Pembukuan Global
+                <i class="bi bi-journal-bookmark-fill text-warning me-2"></i>Data Pembukuan
             </h4>
             <div class="text-muted small">Laporan Sales & Admin</div>
         </div>

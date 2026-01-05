@@ -1,9 +1,9 @@
 @extends('layouts.master')
-
+@section('title', 'Edit Paket Layanan')
 @section('content')
 <div class="container-fluid p-4">
 
-    <h4 class="fw-bold mb-4">Edit Paket</h4>
+    <h4 class="fw-bold mb-4">Edit Paket Layanan</h4>
 
     <div class="card shadow-sm border-0 p-4" style="max-width: 600px;">
         <form action="{{ route('paket-layanan.update', $paket->id_paket) }}" method="POST">

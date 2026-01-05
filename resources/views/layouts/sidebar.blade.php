@@ -116,7 +116,7 @@
                 
                 <a href="{{ route('laporan.index', ['type' => 'rekap']) }}"
                    class="sidebar-sublink {{ request()->fullUrlIs('*type=rekap*') ? 'active-sub' : '' }}">
-                    Rekap
+                    Laporan & Rekap
                 </a>
 
                 {{-- DATA SALES --}}

@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Sales - Setoran per Wilayah')
+@section('title', 'Setoran Sales')
 
 @section('content')
 @php

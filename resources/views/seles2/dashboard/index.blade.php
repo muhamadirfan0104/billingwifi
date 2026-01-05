@@ -1,5 +1,5 @@
 @extends('seles2.layout.master')
-
+@section('title', 'Dashboard Sales')
 @section('content')
     {{-- KARTU WAJIB SETOR (PALING ATAS) --}}
     <div class="menu-section mb-3">

@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Admin')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME (CONSISTENT COMPACT) --- */

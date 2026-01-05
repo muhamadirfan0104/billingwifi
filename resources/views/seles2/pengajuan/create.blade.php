@@ -1,5 +1,5 @@
 @extends('seles2.layout.master')
-
+@section('title', 'Buat Pengajuan')
 @section('content')
     <div class="pelanggan-page">
 

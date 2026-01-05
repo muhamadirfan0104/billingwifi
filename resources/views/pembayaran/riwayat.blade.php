@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Riwayat Pembayaran')
 @section('content')
 <style>
     /* --- ADMIN YELLOW THEME (CONSISTENT COMPACT) --- */

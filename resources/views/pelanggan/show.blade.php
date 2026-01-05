@@ -1,5 +1,5 @@
 @extends('layouts.master')
-
+@section('title', 'Detail Pelanggan')
 @section('content')
 <div class="container-fluid p-4">
     <h5 class="fw-bold mb-4 text-secondary">Detail Pelanggan</h5>
