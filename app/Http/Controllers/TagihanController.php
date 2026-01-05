@@ -2,30 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Langganan;
-use App\Models\Pelanggan;
-use App\Models\Tagihan;
 use Illuminate\Http\Request;
+use App\Models\Pelanggan;
+use App\Models\Langganan;
+use App\Models\Sales;
+use App\Models\Area;
 
 class TagihanController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         // status di URL: '', 'semua', 'belum_lunas', 'lunas'
-        $statusFilter = $request->get('status', ''); // '' = semua
+        $statusFilter = $request->get('status', '');
+
+        // sort dipakai saat belum_lunas: tunggakan_desc / tunggakan_asc
+        $sort = $request->get('sort', 'tunggakan_desc');
+        if (!in_array($sort, ['tunggakan_desc', 'tunggakan_asc'])) {
+            $sort = 'tunggakan_desc';
+        }
 
         // base query: per pelanggan
-        $query = \App\Models\Pelanggan::with([
+        $query = Pelanggan::with([
             'area',
             'sales.user',
             'langganan.paket',
             'langganan.tagihan',
         ]);
 
-        // 🔍 FILTER SEARCH (nama pelanggan / nama paket)
+        // 🔍 FILTER SEARCH
         if ($request->filled('search')) {
             $search = $request->search;
 
@@ -62,35 +66,56 @@ class TagihanController extends Controller
 
         // 🧾 FILTER STATUS TAGIHAN PER PELANGGAN
         if ($statusFilter === 'lunas') {
-            // Pelanggan yang semua tagihannya lunas (atau tidak punya tagihan belum lunas)
-            $query->whereDoesntHave('langganan.tagihan', function ($q) {
+            // pelanggan yang tidak punya tagihan "belum lunas"
+            $query->whereDoesntHave('tagihan', function ($q) {
                 $q->where('status_tagihan', 'belum lunas');
             });
+
+            $query->latest();
+
         } elseif ($statusFilter === 'belum_lunas') {
+
             // Pelanggan yang punya minimal 1 tagihan "belum lunas"
-            $query->whereHas('langganan.tagihan', function ($q) {
+            $query->whereHas('tagihan', function ($q) {
                 $q->where('status_tagihan', 'belum lunas');
             });
+
+            // ✅ HITUNG TUNGGAKAN: belum lunas DAN jatuh tempo sudah lewat
+            $query->withCount([
+                'tagihan as tunggakan_count' => function ($q) {
+                    $q->where('status_tagihan', 'belum lunas')
+                    ->where('jatuh_tempo', '<', now());
+                }
+            ]);
+
+            // ✅ Sorting berdasarkan angka tunggakan_count (3 bulan, 2 bulan, 1 bulan)
+            $sort = $request->get('sort', 'tunggakan_desc'); // tunggakan_desc / tunggakan_asc
+            $direction = ($sort === 'tunggakan_asc') ? 'asc' : 'desc';
+            $query->orderBy('tunggakan_count', $direction);
+
+            // (opsional) kalau sama jumlahnya, urutkan nama biar stabil
+            $query->orderBy('nama', 'asc');
         }
-        // kalau '', 'semua' → tidak di-filter
+
 
         // PAGINATE
         $pelanggan = $query->paginate(10)->withQueryString();
 
-        // daftar paket unik untuk filter dropdown
-        $paketList = \App\Models\Langganan::with('paket')
+        // paket unik untuk filter dropdown (kalau dipakai)
+        $paketList = Langganan::with('paket')
             ->get()
             ->pluck('paket')
-            ->unique('id_paket');
+            ->unique('id_paket')
+            ->values();
 
-        // 🔹 data untuk filter Sales & Wilayah
-        $dataSales = \App\Models\Sales::with('user')->get();
-        $dataArea = \App\Models\Area::all();
+        // data filter Sales & Wilayah
+        $dataSales = Sales::with('user')->get();
+        $dataArea  = Area::all();
 
-        // kalau AJAX → kembalikan partial table saja
+        // AJAX → partial
         if ($request->ajax()) {
             $html = view('tagihan.partials.table', compact('pelanggan'))->render();
-            $pagination = $pelanggan->links()->render();
+            $pagination = $pelanggan->onEachSide(1)->links('pagination::bootstrap-5')->toHtml();
 
             return response()->json([
                 'html' => $html,
@@ -103,8 +128,9 @@ class TagihanController extends Controller
             'pelanggan' => $pelanggan,
             'paketList' => $paketList,
             'dataSales' => $dataSales,
-            'dataArea' => $dataArea,
+            'dataArea'  => $dataArea,
             'statusFilter' => $statusFilter,
+            'sort' => $sort,
         ]);
     }
 
@@ -116,7 +142,6 @@ class TagihanController extends Controller
             'tagihan_ids.*' => 'exists:tagihan,id_tagihan',
         ]);
 
-        // Hapus hanya tagihan belum lunas dan belum terhubung payment_item
         $deleted = \App\Models\Tagihan::whereIn('id_tagihan', $request->tagihan_ids)
             ->whereHas('langganan', fn ($q) => $q->where('id_pelanggan', $request->id_pelanggan))
             ->where('status_tagihan', 'belum lunas')
@@ -124,89 +149,5 @@ class TagihanController extends Controller
             ->delete();
 
         return back()->with('success', "Berhasil menghapus $deleted tagihan.");
-    }
-
-    // public function index(Request $request)
-    // {
-    //     $query = Tagihan::with('langganan.pelanggan', 'langganan.paket');
-
-    //     // Filter search
-    //     if ($request->filled('search')) {
-    //         $search = $request->search;
-    //         $query->whereHas('langganan.pelanggan', function($q) use($search){
-    //             $q->where('nama', 'like', "%{$search}%");
-    //         })->orWhereHas('langganan.paket', function($q) use($search){
-    //             $q->where('nama_paket', 'like', "%{$search}%");
-    //         });
-    //     }
-
-    //     // Filter status
-    //     if ($request->filled('status')) {
-    //         $query->where('status_tagihan', $request->status);
-    //     }
-
-    //     // Filter paket
-    //     if ($request->filled('paket')) {
-    //         $paketId = $request->paket;
-    //         $query->whereHas('langganan.paket', function($q) use($paketId){
-    //             $q->where('id_paket', $paketId);
-    //         });
-    //     }
-
-    //     // Ambil daftar paket unik untuk filter dropdown
-    //     $paketList = Langganan::with('paket')->get()->pluck('paket')->unique('id_paket');
-
-    //     // Pagination
-    //     $dataTagihan = $query->paginate(10)->withQueryString();
-
-    //     return view('tagihan.index', compact('dataTagihan', 'paketList'));
-    // }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

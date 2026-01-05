@@ -25,6 +25,8 @@
 
         // Hitung status tagihan
         $unpaid = $tagihanList->where('status_tagihan', 'belum lunas');
+
+        // tunggakan = belum lunas dan jatuh tempo sudah lewat
         $tunggakan = $unpaid->filter(fn($t) =>
             Carbon::parse($t->jatuh_tempo)->lt($today)
         );
@@ -39,14 +41,12 @@
         $belumBayarBulanIni = $tagihanBulanIni &&
             $tagihanBulanIni->status_tagihan === 'belum lunas';
 
-        // TOTAL TAGIHAN = total tunggakan x harga total paket
         // TOTAL TAGIHAN = jumlah total_tagihan dari semua tunggakan
         $totalTagihan = $tunggakan->sum('total_tagihan');
 
         $totalTagihanLabel = $totalTagihan > 0
             ? 'Rp ' . number_format($totalTagihan, 0, ',', '.')
             : '-';
-
 
         // WARNA BADGE & TEKS STATUS TAGIHAN
         if ($tunggakanCount >= 2) {
@@ -65,9 +65,7 @@
 
         $modalId = "modalTunggakan-" . $p->id_pelanggan;
 
-        // ===============================
-        // STATUS PELANGGAN (aktif / isolir / berhenti / baru)
-        // ===============================
+        // STATUS PELANGGAN
         $pelangganStatus = $p->status_pelanggan_efektif ?? $p->status_pelanggan;
         $pelangganStatusLabel = ucfirst($pelangganStatus ?? '-');
 
@@ -90,19 +88,17 @@
     @endphp
 
     <tr>
-        {{-- NO --}}
-        <td>{{ $noUrut }}</td>
-
-        {{-- NAMA --}}
+        <td class="ps-4">{{ $noUrut }}</td>
+    <td class="text-center">
+        {{ $p->nomor_buku ?? '-' }}
+    </td>
         <td>{{ $p->nama }}</td>
 
-        {{-- AREA & SALES --}}
         <td>
             <div>{{ $p->area->nama_area ?? '-' }}</div>
             <small class="text-muted">{{ $p->sales->user->name ?? '-' }}</small>
         </td>
 
-        {{-- PAKET LAYANAN (atas nama paket, bawah harga total paket) --}}
         <td>
             @if($paket)
                 <div>{{ $paket->nama_paket }}</div>
@@ -114,16 +110,12 @@
             @endif
         </td>
 
-        {{-- IP ADDRESS --}}
         <td>{{ $p->ip_address }}</td>
 
-        {{-- TANGGAL JATUH TEMPO --}}
         <td>{{ $tanggalJatuhTempo }}</td>
 
-        {{-- TOTAL TAGIHAN = total tunggakan x harga total paket --}}
         <td>{{ $totalTagihanLabel }}</td>
 
-        {{-- STATUS --}}
         <td>
             {{-- STATUS TAGIHAN --}}
             @if($tunggakanCount > 0)
@@ -151,7 +143,7 @@
                 <small class="text-danger">Belum Pernah Bayar</small>
             @endif
 
-            {{-- STATUS PELANGGAN (AKTIF / ISOLIR / BERHENTI / BARU) --}}
+            {{-- STATUS PELANGGAN --}}
             <br>
             <small>
                 <span class="badge {{ $pelangganStatusClass }} mt-1">

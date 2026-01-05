@@ -16,6 +16,18 @@
             {{-- optional, kalau kamu pakai redirect seperti sebelumnya --}}
             <input type="hidden" name="redirect_to"
                    value="{{ request('from') === 'status' ? 'pelanggan.status' : 'pelanggan.index' }}">
+<!-- NOMOR BUKU -->
+<div class="mb-3">
+    <label class="fw-semibold">Nomor Buku</label>
+    <input type="text" id="nomor_buku" name="nomor_buku"
+           class="form-control border-warning"
+           value="{{ old('nomor_buku', $pelanggan->nomor_buku) }}"
+           placeholder="Nomor Buku Pelanggan" required>
+    <div class="invalid-feedback"></div>
+    @error('nomor_buku')
+        <small class="text-danger d-block">{{ $message }}</small>
+    @enderror
+</div>
 
             <!-- NAMA -->
             <div class="mb-3">
@@ -91,25 +103,34 @@
             </div>
 
             {{-- STATUS PELANGGAN (kalau memang mau di-set fix) --}}
-            <input type="hidden" name="status_pelanggan" value="aktif">
+            <input type="hidden" name="status_pelanggan" value="{{ old('status_pelanggan', $pelanggan->status_pelanggan) }}">
 
             <!-- PAKET LAYANAN -->
-            <div class="mb-3">
-                <label class="fw-semibold">Paket Layanan</label>
-                <select id="id_paket" name="id_paket" class="form-select border-warning" required>
-                    <option value="" disabled>Pilih Paket Layanan</option>
-                    @foreach ($dataPaket ?? [] as $paket)
-                        <option value="{{ $paket->id_paket }}"
-                            {{ old('id_paket', $pelanggan->langganan->first()->id_paket ?? null) == $paket->id_paket ? 'selected' : '' }}>
-                            {{ $paket->nama_paket }} - {{ $paket->kecepatan }} Mbps
-                        </option>
-                    @endforeach
-                </select>
-                <div class="invalid-feedback"></div>
-                @error('id_paket')
-                    <small class="text-danger d-block">{{ $message }}</small>
-                @enderror
-            </div>
+<div class="mb-3">
+    <label class="fw-semibold">Paket Layanan</label>
+@php
+    $idPaketSelected = optional($pelanggan->langganan->first())->id_paket;
+@endphp
+
+<select name="id_paket" class="form-select border-warning" required>
+    <option value="" disabled {{ !$idPaketSelected ? 'selected' : '' }}>Pilih Paket</option>
+
+    @foreach($dataPaket as $paket)
+        <option value="{{ $paket->id_paket }}"
+            {{ $idPaketSelected == $paket->id_paket ? 'selected' : '' }}>
+            {{ $paket->nama_paket }} ({{ $paket->kecepatan }}) - Rp {{ number_format($paket->harga_total, 0, ',', '.') }}
+        </option>
+    @endforeach
+</select>
+
+
+
+    <div class="invalid-feedback"></div>
+    @error('id_paket')
+        <small class="text-danger d-block">{{ $message }}</small>
+    @enderror
+</div>
+
 
             <!-- AREA -->
             <div class="mb-3">
@@ -233,6 +254,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('formPelanggan');
 
     const validators = {
+        nomor_buku(value) {
+    if (!value.trim()) return 'Nomor buku wajib diisi.';
+    return '';
+},
+
         nama(value) {
             if (!value.trim()) return 'Nama wajib diisi.';
             if (value.trim().length < 3) return 'Nama minimal 3 karakter.';

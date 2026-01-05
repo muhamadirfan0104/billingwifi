@@ -76,12 +76,33 @@
                     </div>
 
                     {{-- Kontak & Teknis --}}
-                    <div class="col-6">
-                        <small class="text-muted d-block mb-1">No. WhatsApp</small>
-                        <div class="fw-semibold text-dark">
-                            {{ $pelanggan->nomor_hp ?? '-' }}
-                        </div>
-                    </div>
+<div class="col-6">
+    <small class="text-muted d-block mb-1">No. WhatsApp</small>
+
+    @php
+        $raw = $pelanggan->nomor_hp ?? '';
+        // ambil angka saja
+        $digits = preg_replace('/\D+/', '', $raw);
+
+        // normalisasi: 08xxxx -> 628xxxx, 62xxxx tetap, +62xxxx -> 62xxxx
+        if (str_starts_with($digits, '0')) {
+            $wa = '62' . substr($digits, 1);
+        } elseif (str_starts_with($raw, '+62')) {
+            $wa = '62' . substr($digits, 2);
+        } else {
+            $wa = $digits;
+        }
+    @endphp
+
+    @if (!empty($wa))
+        <a href="https://wa.me/{{ $wa }}" target="_blank" class="fw-semibold text-success text-decoration-none">
+            <i class="bi bi-whatsapp me-1"></i> {{ $pelanggan->nomor_hp }}
+        </a>
+    @else
+        <div class="fw-semibold text-dark">-</div>
+    @endif
+</div>
+
 
                     <div class="col-6">
                         <small class="text-muted d-block mb-1">IP Address</small>

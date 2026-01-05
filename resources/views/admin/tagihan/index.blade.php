@@ -210,19 +210,21 @@
     <div class="card-admin p-0" style="overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-admin mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">No</th>
-                        <th>Nama</th>
-                        <th>Area & Sales</th>
-                        <th>Paket Layanan</th>
-                        <th>Jatuh Tempo</th>
-                        <th>Info Tagihan</th>
-                        <th>Status</th>
-                        <th>Mulai Bayar</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
+<thead>
+    <tr>
+        <th class="ps-4 text-center" style="width:70px;">No</th>
+        <th class="text-center" style="width:40px;">ID</th>
+        <th>Nama</th>
+        <th>Area & Sales</th>
+        <th>Paket Layanan</th>
+        <th class="text-center" style="width:150px;">Jatuh Tempo</th>
+        <th>Info Tagihan</th>
+        <th class="text-center" style="width:150px;">Status</th>
+        <th class="text-center" style="width:150px;">Mulai Bayar</th>
+        <th class="text-center" style="width:140px;">Aksi</th>
+    </tr>
+</thead>
+
 
                 <tbody id="admin-tagihan-table-body">
                     @include('admin.tagihan.partials.table', ['pelanggan' => $pelanggan])

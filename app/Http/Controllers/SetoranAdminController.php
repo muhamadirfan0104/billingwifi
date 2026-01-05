@@ -190,31 +190,35 @@ public function store(Request $request)
         ->where('user_id', Auth::id())
         ->value('id_admin');
 
-    $tahun = (int) $request->input('tahun');
-    $bulan = (int) $request->input('bulan');
+    if (!$idAdmin) {
+        abort(403, 'Akun ini bukan admin.');
+    }
+
+    $tahun = (int) $request->tahun;
+    $bulan = (int) $request->bulan;
 
     DB::table('setoran')->insert([
-        'id_sales'        => $request->id_sales,
-        'id_area'         => $request->id_area,
-        'id_admin'        => $idAdmin,
-        'tanggal_setoran' => now(),          // tanggal REAL setor
-        'tahun'           => $tahun,         // PERIODE kewajiban
-        'bulan'           => $bulan,         // PERIODE kewajiban
-        'nominal'         => $request->nominal,
+        'id_sales'        => (int) $request->id_sales,
+        'id_area'         => (int) $request->id_area,
+        'id_admin'        => (int) $idAdmin,
+        'tanggal_setoran' => now(),   // tanggal real
+        'tahun'           => $tahun,  // periode kewajiban
+        'bulan'           => $bulan,
+        'nominal'         => (float) $request->nominal,
         'catatan'         => $request->catatan,
         'created_at'      => now(),
         'updated_at'      => now(),
     ]);
 
+    // 🔥 BALIK KE INDEX
     return redirect()
-        ->route('admin.setoran.riwayat', [
-            'id_sales' => $request->id_sales,
-            'id_area'  => $request->id_area,
-            'tahun'    => $tahun,
-            'bulan'    => $bulan,
+        ->route('admin.setoran.index', [
+            'tahun' => $tahun,
+            'bulan' => $bulan,
         ])
         ->with('success', 'Setoran berhasil disimpan.');
 }
+
 
     // EDIT, UPDATE, DESTROY boleh tetap seperti punyamu,
     // yang penting untuk DESTROY baca $request->tahun / $request->bulan 
@@ -224,79 +228,78 @@ public function store(Request $request)
     // ======================== //
     // 5. FORM EDIT SETORAN     //
     // ======================== //
-    public function edit($id_setoran, Request $request)
-    {
-        $setoran = DB::table('setoran as st')
-            ->join('sales as s', 's.id_sales', '=', 'st.id_sales')
-            ->join('users as u', 'u.id', '=', 's.user_id')
-            ->join('area as a', 'a.id_area', '=', 'st.id_area')
-            ->select(
-                'st.id_setoran',
-                'st.id_sales',
-                'st.id_area',
-                'st.nominal',
-                'st.catatan',
-                'st.tanggal_setoran',
-                'u.name as nama_sales',
-                'a.nama_area'
-            )
-            ->where('st.id_setoran', $id_setoran)
-            ->first();
+public function edit($id_setoran, Request $request)
+{
+    $setoran = DB::table('setoran as st')
+        ->join('sales as s', 's.id_sales', '=', 'st.id_sales')
+        ->join('users as u', 'u.id', '=', 's.user_id')
+        ->join('area as a', 'a.id_area', '=', 'st.id_area')
+        ->select(
+            'st.id_setoran',
+            'st.id_sales',
+            'st.id_area',
+            'st.nominal',
+            'st.catatan',
+            'st.tanggal_setoran',
+            'st.tahun',
+            'st.bulan',
+            'u.name as nama_sales',
+            'a.nama_area'
+        )
+        ->where('st.id_setoran', $id_setoran)
+        ->first();
 
-        if (!$setoran) {
-            abort(404);
-        }
+    if (!$setoran) abort(404);
 
-        $tahun = (int) $request->get('tahun', date('Y', strtotime($setoran->tanggal_setoran)));
-        $bulan = (int) $request->get('bulan', date('m', strtotime($setoran->tanggal_setoran)));
+    // Prioritas: querystring > data setoran (periode kewajiban)
+    $tahun = (int) $request->get('tahun', $setoran->tahun ?? now()->year);
+    $bulan = (int) $request->get('bulan', $setoran->bulan ?? now()->month);
 
-        return view('setoran.edit', [
-            'setoran' => $setoran,
-            'tahun'   => $tahun,
-            'bulan'   => $bulan,
-        ]);
-    }
+    return view('setoran.edit', [
+        'setoran' => $setoran,
+        'tahun'   => $tahun,
+        'bulan'   => $bulan,
+    ]);
+}
 
     // ======================== //
     // 6. UPDATE SETORAN        //
     // ======================== //
+public function update(Request $request, $id_setoran)
+{
+    $request->validate([
+        'nominal' => ['required', 'numeric', 'min:1'],
+        'catatan' => ['nullable', 'string'],
+        'tahun'   => ['required', 'integer'],
+        'bulan'   => ['required', 'integer', 'between:1,12'],
+    ]);
 
-    public function update(Request $request, $id_setoran)
-    {
-        $request->validate([
-            'nominal' => ['required', 'numeric', 'min:1'],
-            'catatan' => ['nullable', 'string'],
-            'tahun'   => ['required', 'integer'],
-            'bulan'   => ['required', 'integer', 'between:1,12'],
+    $setoran = DB::table('setoran')->where('id_setoran', $id_setoran)->first();
+    if (!$setoran) abort(404);
+
+    $tahun = (int) $request->input('tahun');
+    $bulan = (int) $request->input('bulan');
+
+    DB::table('setoran')
+        ->where('id_setoran', $id_setoran)
+        ->update([
+            'nominal'    => (float) $request->nominal,
+            'catatan'    => $request->catatan,
+            'tahun'      => $tahun,
+            'bulan'      => $bulan,
+            'updated_at' => now(),
         ]);
 
-        $setoran = DB::table('setoran')->where('id_setoran', $id_setoran)->first();
-        if (!$setoran) {
-            abort(404);
-        }
+    return redirect()
+        ->route('admin.setoran.riwayat', [
+            'id_sales' => $setoran->id_sales,
+            'id_area'  => $setoran->id_area,
+            'tahun'    => $tahun,
+            'bulan'    => $bulan,
+        ])
+        ->with('success', 'Setoran berhasil diperbarui.');
+}
 
-        $tahun = (int) $request->input('tahun');
-        $bulan = (int) $request->input('bulan');
-
-        DB::table('setoran')
-            ->where('id_setoran', $id_setoran)
-            ->update([
-                'nominal'    => $request->nominal,
-                'catatan'    => $request->catatan,
-                'tahun'      => $tahun,   // periode kewajiban
-                'bulan'      => $bulan,   // periode kewajiban
-                'updated_at' => now(),
-            ]);
-
-        return redirect()
-            ->route('admin.setoran.riwayat', [
-                'id_sales' => $setoran->id_sales,
-                'id_area'  => $setoran->id_area,
-                'tahun'    => $tahun,
-                'bulan'    => $bulan,
-            ])
-            ->with('success', 'Setoran berhasil diperbarui.');
-    }
 
     // ======================== //
     // 7. HAPUS SETORAN         //
@@ -304,9 +307,7 @@ public function store(Request $request)
 public function destroy(Request $request, $id_setoran)
 {
     $setoran = DB::table('setoran')->where('id_setoran', $id_setoran)->first();
-    if (!$setoran) {
-        abort(404);
-    }
+    if (!$setoran) abort(404);
 
     $tahun = (int) $request->input('tahun', $setoran->tahun ?? now()->year);
     $bulan = (int) $request->input('bulan', $setoran->bulan ?? now()->month);

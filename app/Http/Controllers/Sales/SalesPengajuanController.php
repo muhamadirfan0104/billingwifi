@@ -118,7 +118,7 @@ class SalesPengajuanController extends Controller
             'nama_pengeluaran' => 'required|string|max:255',
             'nominal'          => 'required|integer|min:1',
             'catatan'          => 'nullable|string',
-            'bukti_file'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'bukti_file'       => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:3072',
         ]);
 
         $filePath = null;

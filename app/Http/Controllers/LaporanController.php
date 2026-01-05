@@ -6,11 +6,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Collection;
 
 use App\Exports\LaporanSalesAreaExport;
 use App\Exports\RekapKeuanganBulananExport;
 use App\Exports\RekapHarianBulananExport;
+use App\Exports\PelangganSalesWilayahExport; 
+use App\Exports\PelangganRegistrasiTahunanExport;
+use App\Exports\PelangganPembayaranTahunanSalesAreaExport;
+use App\Exports\PelangganTunggakanLifetimeSalesAreaExport;
+use App\Exports\PembukuanBulananPerSheetExport;
 
 class LaporanController extends Controller
 {
@@ -274,53 +278,79 @@ $rekap = $rows->sortBy('label')->values();
             'stat'           => $stat,
             'selectedUnits'  => $selectedUnits,
         ]);
+
+
+        
     }
 
     /**
      * EXPORT EXCEL – JANGKANYA 1 TAHUN PENUH
      * Tiap sheet = 1 Sales + 1 Wilayah, kolom Jan–Des (diatur di export class).
      */
-    public function exportExcel(Request $request)
-    {
+// App\Http\Controllers\LaporanController.php
+
+
+public function exportExcel(Request $request)
+{
+    $tipe = $request->input('tipe');
+
+    // ✅ Fokus: EXPORT PELANGGAN
+    if ($tipe === 'pelanggan') {
         $tahun = (int) ($request->input('tahun') ?? now()->year);
+        $bulan = (int) ($request->input('bulan') ?? now()->month);
+
+        // optional: kalau ada checkbox units[] (sales-area key)
         $selectedUnits = $request->input('units', []);
 
-        $assignments = DB::table('area_sales as asg')
-            ->join('sales as s', 's.id_sales', '=', 'asg.id_sales')
-            ->join('users as u', 'u.id', '=', 's.user_id')
-            ->join('area as a', 'a.id_area', '=', 'asg.id_area')
-            ->select(
-                'asg.id_area',
-                'a.nama_area',
-                's.id_sales',
-                'u.id as user_id',
-                'u.name as nama_sales'
-            )
-            ->orderBy('u.name')
-            ->orderBy('a.nama_area')
-            ->get()
-            ->map(function ($row) {
-                $row->key = 'sales-' . $row->id_sales . '-area-' . $row->id_area;
-                return $row;
-            });
-
-        if (!empty($selectedUnits)) {
-            $targets = $assignments->whereIn('key', $selectedUnits)->values();
-        } else {
-            $targets = $assignments;
-        }
-
-        if ($targets->isEmpty()) {
-            return back()->with('error', 'Tidak ada unit yang dipilih untuk diexport.');
-        }
-
-        $fileName = 'laporan-pembukuan-' . $tahun . '.xlsx';
+        $fileName = sprintf('data-pelanggan-%d-%02d.xlsx', $tahun, $bulan);
 
         return Excel::download(
-            new LaporanSalesAreaExport($tahun, $targets),
+            new PelangganSalesWilayahExport($tahun, $bulan, $selectedUnits),
             $fileName
         );
     }
+    if ($tipe === 'registrasi_tahun') {
+    $tahun = (int) ($request->input('tahun') ?? now()->year);
+
+    $fileName = sprintf('data-registrasi-%d.xlsx', $tahun);
+
+    return Excel::download(
+        new PelangganRegistrasiTahunanExport($tahun),
+        $fileName
+    );
+}
+if ($tipe === 'pembayaran_tahun') {
+    $tahun = (int) ($request->input('tahun') ?? now()->year);
+
+    $fileName = sprintf('data-pembayaran-%d.xlsx', $tahun);
+
+    return Excel::download(
+        new PelangganPembayaranTahunanSalesAreaExport($tahun),
+        $fileName
+    );
+}
+if ($tipe === 'tunggakan_lifetime') {
+    $fileName = 'data-tunggakan-pelanggan.xlsx';
+
+    return Excel::download(
+        new PelangganTunggakanLifetimeSalesAreaExport(),
+        $fileName
+    );
+}
+if ($tipe === 'pembukuan_bulanan') {
+    $tahun = (int) ($request->input('tahun') ?? now()->year);
+
+    $fileName = sprintf('pembukuan-%d.xlsx', $tahun);
+
+    return Excel::download(
+        new PembukuanBulananPerSheetExport($tahun),
+        $fileName
+    );
+}
+    return back()->with('error', 'Tipe export belum tersedia: ' . ($tipe ?? '-'));
+}
+
+
 
     public function exportPdf(Request $request)
     {

@@ -216,17 +216,19 @@
     <div class="card-admin p-0" style="overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-admin mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">No</th>
-                        <th>No Pembayaran</th>
-                        <th>Tanggal</th>
-                        <th>Pelanggan & Area</th>
-                        <th>Pembayaran By</th>
-                        <th>Nominal</th>
-                        <th>Detail Tagihan</th>
-                    </tr>
-                </thead>
+<thead>
+    <tr>
+        <th class="ps-4 text-center" style="width:70px;">No</th>
+        <th style="width:190px;">No Pembayaran</th>
+        <th class="text-center" style="width:150px;">Tanggal</th>
+        <th class="text-center" style="width:140px;">Nomor Buku</th>
+        <th>Pelanggan & Area</th>
+        <th style="width:180px;">Pembayaran By</th>
+        <th class="text-end" style="width:160px;">Nominal</th>
+        <th class="text-center" style="width:140px;">Detail Tagihan</th>
+    </tr>
+</thead>
+
                 <tbody id="riwayat-tbody">
                     @include('pembayaran.partials.table_rows_riwayat', ['pembayaran' => $pembayaran])
                 </tbody>

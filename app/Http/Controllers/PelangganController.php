@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+
+use App\Exports\PelangganTemplateExport; // <-- nanti kita buat
+
+use App\Imports\PelangganImport;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Area;
 use App\Models\Langganan;
 use App\Models\Paket;
@@ -115,6 +120,7 @@ class PelangganController extends Controller
         if (!empty($search)) {
             $query->where(function (Builder $q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
+                    ->orWhere('nomor_buku', 'like', "%{$search}%")
                     ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhere('ip_address', 'like', "%{$search}%")
                     ->orWhere('nomor_hp', 'like', "%{$search}%")
@@ -210,6 +216,8 @@ class PelangganController extends Controller
 
         $pelanggan = $query->paginate(10);
 
+        $totalPelanggan = Pelanggan::count(); // ✅ total global terbaru
+
         $partial = $mode === 'status'
             ? 'pelanggan.partials.table_rows_status'
             : 'pelanggan.partials.table_rows';
@@ -218,10 +226,11 @@ class PelangganController extends Controller
         $pagination = $pelanggan->links()->toHtml();
 
         return response()->json([
-            'html'       => $html,
-            'pagination' => $pagination,
-            'total'      => $pelanggan->total(),
+            'html'           => $html,
+            'pagination'     => $pagination,
+            'totalFiltered'  => $pelanggan->total(), // ✅ total sesuai filter
         ]);
+
     }
 
     /**
@@ -245,6 +254,7 @@ class PelangganController extends Controller
             'id_sales'           => 'nullable|exists:sales,id_sales',
             'id_area'            => 'nullable|exists:area,id_area',
             'id_paket'           => 'required|exists:paket,id_paket',
+            'nomor_buku'         => 'required|string|max:50',
             'nama'               => 'required|string|max:100',
             'nik'                => 'required|string|max:30',
             'alamat'             => 'required|string',
@@ -262,6 +272,7 @@ class PelangganController extends Controller
             $pelanggan = Pelanggan::create([
                 'id_sales'           => $request->id_sales,
                 'id_area'            => $request->id_area,
+                'nomor_buku'         => $request->nomor_buku,
                 'nama'               => $request->nama,
                 'nik'                => $request->nik,
                 'alamat'             => $request->alamat,
@@ -390,10 +401,14 @@ class PelangganController extends Controller
         $dataSales = Sales::with('user')->get();
         $dataArea  = Area::all();
         $dataPaket = Paket::all();
-        $pelanggan = Pelanggan::findOrFail($id);
+
+        $pelanggan = Pelanggan::with(['langganan' => function ($q) {
+            $q->orderByDesc('tanggal_mulai');
+        }])->findOrFail($id);
 
         return view('pelanggan.edit', compact('pelanggan', 'dataSales', 'dataArea', 'dataPaket'));
     }
+
 
     /**
      * Update pelanggan + langganan.
@@ -403,6 +418,7 @@ class PelangganController extends Controller
         $request->validate([
             'id_sales'           => 'nullable|exists:sales,id_sales',
             'id_area'            => 'nullable|exists:area,id_area',
+            'nomor_buku'         => 'required|string|max:50',
             'nama'               => 'required|string|max:100',
             'nik'                => 'required|string|max:30',
             'alamat'             => 'required|string',
@@ -422,6 +438,7 @@ class PelangganController extends Controller
             $pelanggan->update([
                 'id_sales'           => $request->id_sales,
                 'id_area'            => $request->id_area,
+                'nomor_buku'         => $request->nomor_buku,
                 'nama'               => $request->nama,
                 'nik'                => $request->nik,
                 'alamat'             => $request->alamat,
@@ -706,4 +723,77 @@ class PelangganController extends Controller
                 ->with('error', 'Gagal memberhentikan pelanggan.');
         }
     }
+
+public function importForm()
+{
+    $dataSales = Sales::with('user')->get();
+    $dataArea  = Area::all();
+    $dataPaket = Paket::all();
+
+    return view('import.pelanggan', compact('dataSales', 'dataArea', 'dataPaket'));
 }
+
+
+public function importExcel(Request $request)
+{
+    $request->validate([
+        'file' => 'required|file|mimes:xlsx,xls,csv',
+    ]);
+
+    try {
+        Excel::import(new PelangganImport, $request->file('file'));
+
+        return back()->with('success', 'Import pelanggan berhasil.');
+    } catch (\Exception $e) {
+        return back()->with('error', 'Import gagal: ' . $e->getMessage());
+    }
+}
+
+
+public function downloadTemplate()
+{
+    return Excel::download(new PelangganTemplateExport(), 'template-import-pelanggan.xlsx');
+}
+
+public function bulkDestroy(Request $request)
+{
+    $request->validate([
+        'ids' => 'required|array|min:1',
+        'ids.*' => 'integer',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $ids = $request->ids;
+
+        $pelanggans = Pelanggan::whereIn('id_pelanggan', $ids)->get();
+
+        foreach ($pelanggans as $pelanggan) {
+            // sama seperti destroy satuan
+            $pelanggan->langganan()->delete();
+            $pelanggan->delete();
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil menghapus ' . count($ids) . ' pelanggan.',
+        ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        // sementara buat debugging biar ketahuan error aslinya
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menghapus pelanggan.',
+            'debug'   => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+}
+

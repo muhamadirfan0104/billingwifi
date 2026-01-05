@@ -7,39 +7,39 @@ use Illuminate\Support\Facades\DB;
 
 class PembukuanController extends Controller
 {
-    public function index(Request $request)
-    {
-        $tahun = (int) ($request->input('tahun') ?? now()->year);
-        $bulan = (int) ($request->input('bulan') ?? now()->month);
+public function index(Request $request)
+{
+    $tahun = (int) ($request->input('tahun') ?? now()->year);
+    $bulan = (int) ($request->input('bulan') ?? now()->month);
 
-        // ==========================
-        // STATISTIK GLOBAL (ATAS)
-        // ==========================
-        $jumlahPelanggan = DB::table('pembayaran as p')
-            ->whereYear('p.tanggal_bayar', $tahun)
-            ->whereMonth('p.tanggal_bayar', $bulan)
-            ->distinct('p.id_pelanggan')
-            ->count('p.id_pelanggan');
+    // ==========================
+    // STATISTIK GLOBAL (ATAS)
+    // ==========================
+    $jumlahPembayaran = DB::table('pembayaran as p')
+        ->whereYear('p.tanggal_bayar', $tahun)
+        ->whereMonth('p.tanggal_bayar', $bulan)
+        ->sum('p.nominal');
 
-        $jumlahPembayaran = DB::table('pembayaran as p')
-            ->whereYear('p.tanggal_bayar', $tahun)
-            ->whereMonth('p.tanggal_bayar', $bulan)
-            ->sum('p.nominal');
+    // TOTAL KOMISI GLOBAL (mengacu ke pembayaran bulan tsb)
+    $jumlahKomisi = DB::table('transaksi_komisi as tk')
+        ->join('pembayaran as p', 'p.id_pembayaran', '=', 'tk.id_pembayaran')
+        ->whereYear('p.tanggal_bayar', $tahun)
+        ->whereMonth('p.tanggal_bayar', $bulan)
+        ->sum('tk.nominal_komisi');
 
-        $jumlahPengeluaran = DB::table('pengeluaran as pg')
-            ->where('pg.status_approve', 'approved')
-            ->whereYear('pg.tanggal_approve', $tahun)
-            ->whereMonth('pg.tanggal_approve', $bulan)
-            ->sum('pg.nominal');
+    $jumlahPengeluaran = DB::table('pengeluaran as pg')
+        ->where('pg.status_approve', 'approved')
+        ->whereYear('pg.tanggal_approve', $tahun)
+        ->whereMonth('pg.tanggal_approve', $bulan)
+        ->sum('pg.nominal');
 
-        $stat = [
-            'jumlah_pelanggan'   => $jumlahPelanggan,
-            'jumlah_pembayaran'  => $jumlahPembayaran,
-            'jumlah_pengeluaran' => $jumlahPengeluaran,
-        ];
+    $stat = [
+        'jumlah_pembayaran'  => (float) $jumlahPembayaran,
+        'jumlah_komisi'      => (float) $jumlahKomisi,
+        'jumlah_pengeluaran' => (float) $jumlahPengeluaran,
+    ];
 
-        $rows = collect();
-
+    $rows = collect();
         // ==========================
         //  REKAP PER SALES–AREA
         // ==========================
@@ -281,14 +281,30 @@ class PembukuanController extends Controller
             ]);
         }
 
-        $rekap = $rows->sortBy('label')->values();
+            $rekap = $rows->sortBy('label')->values();
 
-        return view('pembukuan.index', [
-            'rekap'         => $rekap,
-            'selectedYear'  => $tahun,
-            'selectedMonth' => $bulan,
-            'stat'          => $stat,
+    // ==========================
+    // PARTIAL RESPONSE (REALTIME)
+    // ==========================
+    if ($request->boolean('partial')) {
+        return response()->json([
+            'stats_html' => view('pembukuan.partials._stats', [
+                'selectedYear'  => $tahun,
+                'selectedMonth' => $bulan,
+                'stat'          => $stat,
+            ])->render(),
+            'table_html' => view('pembukuan.partials._table', [
+                'rekap' => $rekap,
+            ])->render(),
         ]);
+    }
+
+    return view('pembukuan.index', [
+        'rekap'         => $rekap,
+        'selectedYear'  => $tahun,
+        'selectedMonth' => $bulan,
+        'stat'          => $stat,
+    ]);
     }
 
     public function show(Request $request, $id)

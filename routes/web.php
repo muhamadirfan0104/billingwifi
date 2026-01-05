@@ -28,6 +28,7 @@ use App\Models\Pelanggan;
 use App\Models\Pengeluaran;
 use Illuminate\Support\Facades\Route;
 
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -39,7 +40,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard/admin', [DashboardController::class, 'index'])
         ->name('dashboard-admin');
     Route::get('/dashboard/admin', [DashboardController::class, 'index'])->name('dashboard-admin');
-
+    Route::delete('/pelanggan/bulk-delete', [PelangganController::class, 'bulkDestroy'])
+        ->name('pelanggan.bulkDestroy');
     // Resource pelanggan untuk admin
     Route::resource('pelanggan', PelangganController::class);
     // Halaman status pelanggan (menu terpisah)
@@ -128,6 +130,11 @@ Route::get('/laporan/export/rekap-keuangan', [LaporanController::class, 'exportR
     Route::get('/laporan/export/pdf', [LaporanController::class, 'exportPdf'])
         ->name('laporan.export.pdf');
 
+    // routes/web.php
+    Route::get('/laporan/export/excel', [LaporanController::class, 'exportExcel'])
+        ->name('laporan.export.excel');
+
+
     Route::get('/pengajuan/bukti/{pengajuan:id_pengeluaran}', function (Pengeluaran $pengajuan) {
 
         if (! $pengajuan->bukti_file) {
@@ -155,6 +162,17 @@ Route::get('/laporan/export/rekap-keuangan', [LaporanController::class, 'exportR
     Route::resource('/pengaturan/admin', AdminController::class);
 
     Route::get('/pelanggan/list', [PelangganController::class, 'list'])->name('pelanggan.list');
+
+
+
+    Route::prefix('import')->group(function () {
+        Route::get('/pelanggan', [PelangganController::class, 'importForm'])->name('import.pelanggan');
+        Route::post('/pelanggan', [PelangganController::class, 'importExcel'])->name('import.pelanggan.process');
+
+        // download template excel
+        Route::get('/pelanggan/template', [PelangganController::class, 'downloadTemplate'])
+            ->name('import.pelanggan.template');
+    });
 
 });
 
@@ -247,6 +265,9 @@ Route::middleware(['auth', 'sales'])->group(function () {
         Route::post('/tagihan/bayar-banyak', [TagihanSalesController::class, 'bayarBanyak'])
             ->name('tagihan.bayar-banyak');
 
+        Route::get('/tagihan/nota/{id_pembayaran}', [TagihanSalesController::class, 'nota'])
+            ->name('tagihan.nota');
+        
         /*
     |----------------------------------------------------------------------
     | RIWAYAT PEMBAYARAN (SALES)
@@ -324,6 +345,7 @@ Route::middleware(['auth', 'sales'])->group(function () {
 
         Route::get('/profile/password', fn () => view('seles2.profile.password'))
             ->name('profile.password');
+        
     });
 
 });

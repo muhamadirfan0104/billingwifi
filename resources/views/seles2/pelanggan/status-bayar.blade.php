@@ -4,45 +4,68 @@
 
     <div class="pelanggan-page">
 
-        {{-- HEADER (Tema Amber) --}}
-        <div class="pelanggan-header d-flex align-items-center justify-content-between px-3 py-2">
-            <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('dashboard-sales') }}" class="back-btn">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <h5 class="mb-0 fw-bold">Status Pembayaran</h5>
+{{-- HEADER (Tema Amber - Diperbesar) --}}
+<div class="pelanggan-header px-3">
+    <div class="d-flex align-items-center justify-content-between ">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ route('dashboard-sales') }}" class="back-btn">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="mb-0 fw-bold text-white">Status Pembayaran</h4>
+
             </div>
         </div>
+    </div>
+</div>
 
         @php
             $statusPage = $statusBayar ?? request('status_bayar', 'belum'); // 'belum' / 'lunas'
         @endphp
-
-        {{-- FILTER & SEARCH --}}
-        <div class="filter-bar mt-3 px-1">
-            <div class="flex-grow-1 me-2">
-                <div class="input-group input-group-sm shadow-sm">
-                    <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="search-input" class="form-control border-start-0 rounded-end-pill ps-0"
-                        placeholder="Cari nama / HP / alamat...">
-                </div>
+{{-- FILTER & SEARCH (Versi Rapih) --}}
+<div class="filter-wrapper mt-3 px-2">
+    <div class="row g-2 align-items-center">
+        {{-- Search Input --}}
+        <div class="col">
+            <div class="search-box">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="search-input" class="form-control-custom" placeholder="Cari nama, HP, alamat...">
             </div>
-            <div style="width: 140px;">
-                <select id="area-filter" class="form-select form-select-sm rounded-pill shadow-sm text-muted">
+        </div>
+        {{-- Area Filter --}}
+        <div class="col-auto">
+            <div class="filter-box">
+                <select id="area-filter" class="form-select-custom">
                     <option value="">Semua Wilayah</option>
-                    @php
-                        $areas = $dataArea ?? collect([]);
-                    @endphp
-                    @foreach ($areas as $area)
+                    @foreach ($dataArea ?? [] as $area)
                         <option value="{{ strtolower($area->nama_area) }}">
-                            {{ $area->nama_area }}
+                            {{ strtoupper($area->nama_area) }}
                         </option>
                     @endforeach
                 </select>
             </div>
         </div>
+    </div>
+</div>
+@php
+    $currentSort = request('sort', 'tunggakan_desc');
+    $nextSort = ($currentSort === 'tunggakan_desc') ? 'tunggakan_asc' : 'tunggakan_desc';
+@endphp
+
+@if ($statusPage === 'belum')
+    <div class="px-3 mt-2">
+        <a href="{{ request()->fullUrlWithQuery(['sort' => $nextSort]) }}"
+           class="btn btn-sm btn-outline-warning rounded-pill w-100 shadow-sm">
+            <i class="bi bi-sort-down me-1"></i>
+            Urutkan Tunggakan
+            @if($currentSort === 'tunggakan_desc')
+                (Terbesar → Terkecil)
+            @else
+                (Terkecil → Terbesar)
+            @endif
+        </a>
+    </div>
+@endif
 
         {{-- LIST PELANGGAN --}}
         <div class="pelanggan-list mt-3 pb-3">
@@ -66,21 +89,51 @@
                         ->sortByDesc(fn($t) => $t->tahun * 100 + $t->bulan)
                         ->first();
 
-                    // ==== TAGIHAN DISPLAY ====
-                    if ($statusPage === 'belum') {
-                        $tagihanDisplay =
-                            $tunggakan->first() ??
-                            $semuaTagihan->sortByDesc(fn($t) => $t->tahun * 100 + $t->bulan)->first();
-                        $cardClass = 'card-belum'; // Style Merah
-                    } else {
-                        // 'lunas'
-                        $tagihanDisplay =
-                            $tagihanLunasTerakhir ??
-                            $semuaTagihan->sortByDesc(fn($t) => $t->tahun * 100 + $t->bulan)->first();
-                        $cardClass = 'card-lunas'; // Style Hijau
-                    }
+// Semua tagihan pelanggan
+$semuaTagihan = $item->langganan->flatMap(fn($l) => $l->tagihan);
 
-                    $nominalTagihanDisplay = $tagihanDisplay->total_tagihan ?? 0;
+// TUNGGAKAN (semua belum lunas)
+$tunggakan = $semuaTagihan
+    ->where('status_tagihan', 'belum lunas')
+    ->sortBy(fn($t) => $t->tahun * 100 + $t->bulan);
+
+// TOTAL tunggakan (ini yang kamu mau!)
+$totalTunggakan  = (int) $tunggakan->sum('total_tagihan');
+$jumlahTunggakan = (int) $tunggakan->count();
+
+// TAGIHAN LUNAS TERAKHIR
+$tagihanLunasTerakhir = $semuaTagihan
+    ->whereIn('status_tagihan', ['lunas', 'sudah lunas'])
+    ->sortByDesc(fn($t) => $t->tahun * 100 + $t->bulan)
+    ->first();
+
+// TAGIHAN TERBARU (buat fallback)
+$tagihanTerbaru = $semuaTagihan
+    ->sortByDesc(fn($t) => $t->tahun * 100 + $t->bulan)
+    ->first();
+
+// ==== TAGIHAN DISPLAY + WARNA KARTU ====
+if ($statusPage === 'belum') {
+    // kalau belum bayar → ambil tagihan tunggakan paling tua buat jatuh tempo
+    $tagihanDisplay = $tunggakan->first() ?? $tagihanTerbaru;
+    $cardClass = 'card-belum';
+
+    $nominalTampil = $jumlahTunggakan > 0 ? $totalTunggakan : null; // ✅ total tunggakan
+    $labelNominal  = 'Total Tunggakan';
+} else {
+    // lunas → tetap ambil tagihan untuk keperluan jatuh tempo/info lain (kalau mau),
+    // tapi nominal yang ditampilkan harus 0
+    $tagihanDisplay = $tagihanLunasTerakhir ?? $tagihanTerbaru;
+    $cardClass = 'card-lunas';
+
+    $nominalTampil = 0;          // ✅ FIX: sudah bayar = 0
+    $labelNominal  = 'Total Tagihan';
+}
+
+
+$nominalTagihanDisplay = $tagihanDisplay ? (int) $tagihanDisplay->total_tagihan : null;
+$totalTunggakan = (int) $tunggakan->sum('total_tagihan'); // total semua belum lunas
+$jumlahTunggakan = (int) $tunggakan->count();             // berapa bulan/tagihan
 
                     // ==== HITUNG JATUH TEMPO ====
                     $jatuhTempoDisplay = null;
@@ -174,12 +227,25 @@
 
                             {{-- Nominal --}}
                             <div class="text-end w-100 mt-2 pt-2 border-top border-light">
-                                <div class="small text-muted mb-0" style="font-size: 0.7rem;">Total Tagihan</div>
-                                <span class="fw-bold text-dark" style="font-size: 1.1rem;">
-                                    <span class="text-secondary small me-1" style="font-size: 0.8rem;">Rp</span>
-                                    {{ number_format($nominalTagihanDisplay, 0, ',', '.') }}
-                                </span>
+<div class="small text-muted mb-0" style="font-size: 0.7rem;">
+    {{ $labelNominal }}
+    @if($statusPage === 'belum' && $jumlahTunggakan > 0)
+        <span class="text-muted">({{ $jumlahTunggakan }} bln)</span>
+    @endif
+</div>
+
+@if(!is_null($nominalTampil))
+    <span class="fw-bold text-dark" style="font-size: 1.1rem;">
+        <span class="text-secondary small me-1" style="font-size: 0.8rem;">Rp</span>
+        {{ number_format($nominalTampil, 0, ',', '.') }}
+    </span>
+@else
+    <span class="badge bg-light text-muted border rounded-pill px-2">Belum ada tagihan</span>
+@endif
+
+
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -265,14 +331,91 @@
                                 @endif
                             </div>
 
-                            <div class="modal-footer border-0 pt-0 pb-3">
-                                <button type="button" class="btn btn-light rounded-pill px-4"
-                                    data-bs-dismiss="modal">Tutup</button>
-                                <a href="{{ route('seles2.pelanggan.show', $item->id_pelanggan) }}"
-                                    class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
-                                    Detail Pelanggan <i class="bi bi-arrow-right ms-1"></i>
-                                </a>
-                            </div>
+
+<div class="modal-footer border-0 pt-0 pb-3">
+    @if ($statusPage === 'belum' && $tunggakan->isNotEmpty())
+        @php
+            // Nomor WA pelanggan
+            $waNumber = $item->nomor_hp ?? null;
+
+            // Normalisasi nomor
+            $waLink = null;
+
+            // Ambil periode tunggakan (contoh: September 2025, Oktober 2025, dst)
+            $listPeriode = $tunggakan->map(function($tg){
+                return \Carbon\Carbon::create($tg->tahun, $tg->bulan, 1)
+                    ->locale('id')->translatedFormat('F Y');
+            })->values()->toArray();
+
+            $periodePertama = $listPeriode[0] ?? null;
+            $periodeTerakhir = $listPeriode[count($listPeriode)-1] ?? null;
+
+            // Buat teks periode ringkas
+            if (count($listPeriode) === 1) {
+                $periodeText = $periodePertama;
+            } else {
+                $periodeText = $periodePertama . ' s.d ' . $periodeTerakhir;
+            }
+
+            // Total tunggakan (sudah kamu hitung)
+            $totalTunggakanText = 'Rp ' . number_format((int)$totalTunggakan, 0, ',', '.');
+
+            // Batas bayar: pakai jatuh tempo display (tagihan paling tua), fallback 2 hari dari sekarang
+            $batasBayar = $jatuhTempoDisplay
+                ? $jatuhTempoDisplay->locale('id')->translatedFormat('d F Y')
+                : now()->addDays(2)->locale('id')->translatedFormat('d F Y');
+
+            // Link detail pelanggan (opsional)
+            $detailUrl = route('seles2.pelanggan.show', $item->id_pelanggan);
+    // Pesan WhatsApp tagihan BELUM LUNAS
+    $msg =
+"Assalamu’alaikum Bapak/Ibu/Sdr {$item->nama},
+
+Kami informasikan bahwa tagihan layanan internet Anda saat ini masih *BELUM LUNAS*.
+
+• Periode tunggakan: *{$periodeText}* (" . count($listPeriode) . " bulan)
+• Total tagihan: *{$totalTunggakanText}*
+• Batas pembayaran: *24 jam setelah pesan ini (jika tidak ada kejelasan)*
+
+Mohon segera dilakukan pembayaran untuk menghindari isolir/putus layanan.
+Terima kasih. 🙏";
+
+    if (!empty($waNumber)) {
+        $digits = preg_replace('/[^0-9]/', '', $waNumber);
+
+        // normalisasi 08xxxx → 62xxxx
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . substr($digits, 1);
+        }
+
+        $waLink = "https://wa.me/" . $digits . "?text=" . urlencode($msg);
+    }
+@endphp
+
+ @if ($waLink)
+                <a target="_blank" href="{{ $waLink }}"
+                   class="btn btn-outline-success rounded-pill fw-bold">
+                    <i class="bi bi-whatsapp"></i> Kirim WA Tagihan
+                </a>
+            @else
+                <button type="button" class="btn btn-outline-secondary rounded-pill fw-bold" disabled>
+                    <i class="bi bi-whatsapp"></i> Nomor WA tidak tersedia
+                </button>
+            @endif
+        @endif
+
+        <a href="{{ route('seles2.pelanggan.show', $item->id_pelanggan) }}"
+           class="btn btn-primary rounded-pill fw-bold shadow-sm">
+            Detail Pelanggan <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+
+        <button type="button"
+                class="btn btn-light rounded-pill fw-bold text-secondary"
+                data-bs-dismiss="modal">
+            Tutup
+        </button>
+</div>
+
                         </div>
                     </div>
                 </div>
@@ -409,6 +552,68 @@
             font-weight: 500;
             border: 1px solid #fcd34d;
         }
+
+
+/* Styling Search & Filter Modern */
+.filter-wrapper {
+    position: relative;
+    z-index: 100;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.form-control-custom {
+    width: 100%;
+    padding: 9px 12px 9px 38px; /* Padding kiri lebih besar untuk ikon */
+    font-size: 0.85rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.form-control-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-select-custom {
+    padding: 9px 30px 9px 12px;
+    font-size: 0.85rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    /* Custom Arrow Icon */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
+    min-width: 130px;
+}
+
+.form-select-custom:focus {
+    outline: none;
+    border-color: #f59e0b;
+    color: #1e293b;
+}
     </style>
 @endpush
 

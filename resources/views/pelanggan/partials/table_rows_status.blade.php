@@ -19,7 +19,6 @@
             $tanggalKolom = null;
 
             if ($rawStatus === 'baru') {
-                // pelanggan baru → pakai tanggal_registrasi dari tabel pelanggan
                 $tanggalKolom = $p->tanggal_registrasi;
             } elseif ($langgananAktif) {
                 if ($rawStatus === 'aktif') {
@@ -31,25 +30,27 @@
                 }
             }
 
-            // untuk routing balik ke halaman status yang sama
             $statusQuery = [
                 'from'   => 'status',
                 'status' => $statusHalaman,
             ];
 
-            // kumpulkan semua tagihan belum lunas (dipakai di isolir & berhenti & modal)
             $tagihanBelumLunas = $p->langganan
                 ->flatMap(fn ($l) => $l->tagihan)
                 ->where('status_tagihan', 'belum lunas')
                 ->sortBy(fn ($t) => $t->tahun * 100 + $t->bulan);
 
-            // ID modal hapus tagihan
             $modalHapusId = 'modalHapusTagihan-' . $p->id_pelanggan;
         @endphp
 
         <tr>
             {{-- NO --}}
-            <td>{{ $nomor }}</td>
+            <td class="ps-4 text-center">{{ $nomor }}</td>
+
+            {{-- NOMOR BUKU (CENTER) --}}
+            <td class="text-center">
+                {{ $p->nomor_buku ?? '-' }}
+            </td>
 
             {{-- NAMA --}}
             <td>{{ $p->nama }}</td>
@@ -72,8 +73,8 @@
                 @endif
             </td>
 
-            {{-- TANGGAL (DINAMIS: registrasi / aktif / berhenti / isolir) --}}
-            <td>
+            {{-- TANGGAL (CENTER) --}}
+            <td class="text-center">
                 @if($tanggalKolom)
                     {{ \Carbon\Carbon::parse($tanggalKolom)->locale('id')->translatedFormat('d F Y') }}
                 @else
@@ -81,21 +82,19 @@
                 @endif
             </td>
 
-            {{-- IP --}}
-            <td>{{ $p->ip_address }}</td>
+            {{-- IP (CENTER) --}}
+            <td class="text-center">{{ $p->ip_address ?? '-' }}</td>
 
-            {{-- STATUS BADGE --}}
-            <td>
+            {{-- STATUS BADGE (CENTER) --}}
+            <td class="text-center">
                 @php
-                    // pakai statusHalaman untuk warna badge,
-                    // atau fallback ke statusBadge kalau dipakai di halaman "semua"
                     $statusColor = $statusHalaman ?? $statusBadge;
                 @endphp
 
                 <span class="badge
                     @if($statusColor == 'baru') bg-secondary
                     @elseif($statusColor == 'aktif') bg-success
-                    @elseif($statusColor == 'isolir') bg-warning
+                    @elseif($statusColor == 'isolir') bg-warning text-dark
                     @elseif($statusColor == 'berhenti') bg-danger
                     @else bg-secondary
                     @endif
@@ -104,8 +103,8 @@
                 </span>
             </td>
 
-            {{-- AKSI --}}
-            <td>
+            {{-- AKSI (CENTER) --}}
+            <td class="text-center">
                 {{-- BARU / AKTIF --}}
                 @if (in_array($statusHalaman, ['baru', 'aktif']))
 
@@ -211,8 +210,7 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
 
-                                <form action="{{ route('tagihan.hapus-pelanggan') }}"
-                                      method="POST">
+                                <form action="{{ route('tagihan.hapus-pelanggan') }}" method="POST">
                                     @csrf @method('DELETE')
 
                                     <input type="hidden" name="id_pelanggan" value="{{ $p->id_pelanggan }}">
@@ -229,7 +227,7 @@
                                                     <tr>
                                                         <th style="width: 40px;">
                                                             <input type="checkbox"
-                                                                   onclick="document.querySelectorAll('.check-{{ $p->id_pelanggan }}').forEach(cb => cb.checked = this.checked)">
+                                                                onclick="document.querySelectorAll('.check-{{ $p->id_pelanggan }}').forEach(cb => cb.checked = this.checked)">
                                                         </th>
                                                         <th>Bulan</th>
                                                         <th>Total Tagihan</th>
@@ -241,9 +239,9 @@
                                                         <tr>
                                                             <td>
                                                                 <input type="checkbox"
-                                                                       class="form-check-input check-{{ $p->id_pelanggan }}"
-                                                                       name="tagihan_ids[]"
-                                                                       value="{{ $t->id_tagihan }}">
+                                                                    class="form-check-input check-{{ $p->id_pelanggan }}"
+                                                                    name="tagihan_ids[]"
+                                                                    value="{{ $t->id_tagihan }}">
                                                             </td>
                                                             <td>{{ sprintf('%02d',$t->bulan) }}-{{ $t->tahun }}</td>
                                                             <td>Rp {{ number_format($t->total_tagihan,0,',','.') }}</td>
@@ -274,7 +272,7 @@
     @endforeach
 @else
     <tr>
-        <td colspan="9" class="no-results text-center">
+        <td colspan="10" class="no-results text-center">
             Tidak ada data pelanggan yang ditemukan
         </td>
     </tr>

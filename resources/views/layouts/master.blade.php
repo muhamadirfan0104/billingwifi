@@ -73,7 +73,9 @@
     @include('modal.logout')
     @include('modal.delete')
     @include('modal.detail')
-
+    @include('modal.delete')
+    {{-- MODAL --}}
+    @include('modal.bulk_delete')
     {{-- <script>
     document.addEventListener('DOMContentLoaded', function () {
     const deleteButtons = document.querySelectorAll('.btn-delete');

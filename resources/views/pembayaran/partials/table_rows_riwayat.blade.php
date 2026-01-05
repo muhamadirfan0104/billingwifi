@@ -26,47 +26,52 @@
 
     $modalId = 'modal-detail-pembayaran-' . $pay->id_pembayaran;
 @endphp
+<tr>
+    <td class="ps-4 text-center">{{ $no }}</td>
 
+    <td>
+        <strong>{{ $pay->no_pembayaran }}</strong><br>
+        <small class="text-muted">ID: {{ $pay->id_pembayaran }}</small>
+    </td>
 
-    <tr>
-        <td>{{ $no }}</td>
+    <td class="text-center">
+        {{ optional($pay->tanggal_bayar)->format('d/m/Y H:i') }}
+    </td>
 
-        <td>
-            <strong>{{ $pay->no_pembayaran }}</strong><br>
-            <small class="text-muted">ID: {{ $pay->id_pembayaran }}</small>
-        </td>
+    {{-- NOMOR BUKU --}}
+    <td class="text-center">
+        {{ $pelanggan?->nomor_buku ?? '-' }}
+    </td>
 
-        <td>{{ optional($pay->tanggal_bayar)->format('d/m/Y H:i') }}</td>
+    <td>
+        <div>{{ $pelanggan->nama ?? '-' }}</div>
+        <small class="text-muted">{{ $area ?? '-' }}</small>
+    </td>
 
-        <td>
-            <div>{{ $pelanggan->nama ?? '-' }}</div>
-            <small class="text-muted">{{ $area ?? '-' }}</small>
-        </td>
+    <td>
+        <span class="badge {{ $badgeClass }}">
+            {{ $sumberText }}
+        </span>
+    </td>
 
-        <td>
-            <span class="badge {{ $badgeClass }}">
-                {{ $sumberText }}
-            </span>
-        </td>
+    <td class="text-end">
+        <strong>Rp {{ number_format($pay->nominal, 0, ',', '.') }}</strong>
+    </td>
 
+    <td class="text-center">
+        @if($pay->items->isEmpty())
+            <span class="text-muted">Tidak ada detail tagihan</span>
+        @else
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#{{ $modalId }}">
+                Lihat Detail
+            </button>
+        @endif
+    </td>
+</tr>
 
-        <td>
-            <strong>Rp {{ number_format($pay->nominal, 0, ',', '.') }}</strong>
-        </td>
-
-        <td>
-            @if($pay->items->isEmpty())
-                <span class="text-muted">Tidak ada detail tagihan</span>
-            @else
-                <button type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#{{ $modalId }}">
-                    Lihat Detail
-                </button>
-            @endif
-        </td>
-    </tr>
 
     @if($pay->items->isNotEmpty())
         @push('modals')
@@ -167,7 +172,7 @@
     @endif
 @empty
     <tr>
-        <td colspan="7" class="text-center text-muted">
+        <td colspan="8" class="text-center text-muted">
             Belum ada data pembayaran.
         </td>
     </tr>

@@ -32,12 +32,12 @@ class TagihanSalesController extends Controller
         $user = $request->user();
         $salesId = optional($user->sales)->id_sales;
 
-        $query = Pelanggan::with([
-            'area',
-            'sales.user',
-            'langganan.paket',
-            'langganan.tagihan',
-        ]);
+$query = Pelanggan::with([
+    'area',
+    'sales.user',
+    'langganan.paket',
+    'langganan.tagihan',
+]);
 
         if ($salesId) {
             $query->where('id_sales', $salesId);
@@ -65,6 +65,17 @@ class TagihanSalesController extends Controller
                 $q->where('id_paket', $paketId);
             });
         }
+
+$query->where(function ($q) {
+    // 1) Pelanggan aktif tetap tampil
+    $q->where('status_pelanggan', 'aktif')
+
+      // 2) Selain itu, hanya tampil kalau ada tagihan BELUM LUNAS
+      ->orWhereHas('langganan.tagihan', function ($t) {
+          $t->where('status_tagihan', 'belum lunas');
+      });
+});
+
 
         $pelanggan = $query->paginate(15)->withQueryString();
 
@@ -258,13 +269,40 @@ class TagihanSalesController extends Controller
 
             DB::commit();
 
-            return back()->with('success', 'Pembayaran periode berhasil diproses oleh sales.');
+return back()
+    ->with('success', 'Pembayaran berhasil diproses.')
+    ->with('last_pembayaran_id', $pembayaran->id_pembayaran)
+    ->with('wa_pelanggan', $langganan->pelanggan->nomor_hp) // atau field WA khusus
+    ->with('no_invoice', $pembayaran->no_pembayaran)
+    ->with('total_bayar', $totalBayar);
+
+
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return back()->with('error', 'Gagal memproses pembayaran: '.$e->getMessage());
         }
     }
+
+public function nota($id_pembayaran, Request $request)
+{
+    $salesId = optional($request->user()->sales)->id_sales;
+    abort_if(! $salesId, 403);
+
+    $pembayaran = Pembayaran::with([
+        'pelanggan.area',
+        'sales.user',
+        'paymentItems.tagihan.langganan.paket',
+    ])
+    ->where('id_pembayaran', $id_pembayaran)
+    ->where('id_sales', $salesId)
+    ->firstOrFail();
+
+    $embed = $request->boolean('embed'); // ?embed=1
+
+    return view('seles2.tagihan.nota', compact('pembayaran','embed'));
+}
+
 
     protected function generateNoPembayaranSales(): string
     {

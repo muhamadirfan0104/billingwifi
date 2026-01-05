@@ -2,7 +2,6 @@
 
 @section('content')
 <style>
-    /* --- ADMIN YELLOW THEME (CONSISTENT COMPACT) --- */
     :root {
         --theme-yellow: #ffc107;
         --theme-yellow-dark: #e0a800;
@@ -11,7 +10,6 @@
         --card-radius: 12px;
     }
 
-    /* 1. Typography */
     .page-title {
         font-size: 22px;
         font-weight: 800;
@@ -19,7 +17,6 @@
         letter-spacing: -0.5px;
     }
 
-    /* 2. Tombol & Tab Status */
     .btn-tab-active {
         background-color: var(--theme-yellow);
         color: #000;
@@ -37,7 +34,6 @@
         border-color: var(--theme-yellow);
     }
 
-    /* 3. Card Styles */
     .card-admin {
         background: #fff;
         border: none;
@@ -47,7 +43,6 @@
         width: 100%;
     }
 
-    /* 4. Form Inputs */
     .form-control-admin, .form-select-admin {
         border: 1px solid #dee2e6;
         border-radius: 8px;
@@ -59,7 +54,6 @@
         box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
     }
 
-    /* 5. Table Styling (COMPACT) */
     .table-admin {
         width: 100%;
         margin-bottom: 0;
@@ -87,19 +81,18 @@
         background-color: #fffdf5;
     }
 
-    /* 6. Pagination Styling (Yellow & Consistent) */
     .pagination-wrapper {
         display: flex;
         justify-content: center !important;
         align-items: center;
         width: 100%;
-        padding: 15px; /* SAMA DENGAN YG LAIN */
+        padding: 15px;
         background: #fff;
         border-top: 1px solid #f0f0f0;
     }
 
     .pagination-wrapper nav .d-none.d-sm-flex > div:first-child {
-        display: none !important; 
+        display: none !important;
     }
     .pagination-wrapper nav .d-none.d-sm-flex {
         justify-content: center !important;
@@ -126,7 +119,7 @@
 </style>
 
 <div class="container-fluid p-4" id="tagihan-page-wrapper">
-    
+
     {{-- HEADER --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -139,31 +132,63 @@
 
     @php
         $statusFilter = $statusFilter ?? request('status', '');
+        $sort = $sort ?? request('sort', 'tunggakan_desc');
     @endphp
 
-    {{-- TAB STATUS (DESIGN BARU) --}}
-    <div class="mb-4">
+    {{-- TAB STATUS --}}
+    <div class="mb-3">
         <div class="btn-group shadow-sm" role="group" style="border-radius: 8px; overflow: hidden;">
-            <a href="{{ route('tagihan.index') }}"
+            <a href="{{ route('tagihan.index', array_merge(request()->query(), ['status' => ''])) }}"
                class="btn btn-sm px-4 py-2 {{ $statusFilter === '' ? 'btn-tab-active' : 'btn-tab-inactive' }}">
                Semua
             </a>
-            <a href="{{ route('tagihan.index', ['status' => 'belum_lunas']) }}"
-               class="btn btn-sm px-4 py-2 {{ $statusFilter === 'belum_lunas' ? 'btn-tab-active' : 'btn-tab-inactive' }}">
-               Belum Lunas
-            </a>
-            <a href="{{ route('tagihan.index', ['status' => 'lunas']) }}"
+
+<a href="{{ route('tagihan.index', array_merge(request()->query(), [
+        'status' => 'belum_lunas',
+        'sort'   => 'tunggakan_desc',
+        'page'   => 1
+    ])) }}"
+   class="btn btn-sm px-4 py-2 {{ $statusFilter === 'belum_lunas' ? 'btn-tab-active' : 'btn-tab-inactive' }}">
+   Belum Lunas
+</a>
+
+
+            <a href="{{ route('tagihan.index', array_merge(request()->query(), ['status' => 'lunas'])) }}"
                class="btn btn-sm px-4 py-2 {{ $statusFilter === 'lunas' ? 'btn-tab-active' : 'btn-tab-inactive' }}">
                Lunas
             </a>
         </div>
     </div>
 
+    {{-- TOGGLE SORT (muncul hanya saat belum lunas) --}}
+@if($statusFilter === 'belum_lunas')
+    <div class="mb-3 d-flex gap-2">
+        <a class="btn btn-sm {{ request('sort','tunggakan_desc') === 'tunggakan_desc' ? 'btn-tab-active' : 'btn-tab-inactive' }}"
+           href="{{ route('tagihan.index', array_merge(request()->query(), [
+                'status' => 'belum_lunas',
+                'sort' => 'tunggakan_desc',
+                'page' => 1
+           ])) }}">
+            Tunggakan Terbanyak
+        </a>
+
+        <a class="btn btn-sm {{ request('sort') === 'tunggakan_asc' ? 'btn-tab-active' : 'btn-tab-inactive' }}"
+           href="{{ route('tagihan.index', array_merge(request()->query(), [
+                'status' => 'belum_lunas',
+                'sort' => 'tunggakan_asc',
+                'page' => 1
+           ])) }}">
+            Tunggakan Tersedikit
+        </a>
+    </div>
+@endif
+
     {{-- FILTER CARD --}}
     <div class="card-admin p-3 mb-3">
         <div class="row g-2" id="filter-tagihan-wrapper">
-            {{-- HIDDEN INPUT UNTUK STATUS --}}
+            {{-- HIDDEN INPUT UNTUK STATUS & SORT --}}
             <input type="hidden" id="status-tagihan" value="{{ $statusFilter }}">
+            <input type="hidden" id="sort-tagihan" value="{{ $sort }}">
 
             {{-- SEARCH --}}
             <div class="col-12 col-md-4">
@@ -211,18 +236,20 @@
     <div class="card-admin p-0" style="overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-admin mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">No</th>
-                        <th>Nama</th>
-                        <th>Area & Sales</th>
-                        <th>Paket Layanan</th>
-                        <th>IP Address</th>
-                        <th>Jatuh Tempo</th>
-                        <th>Total Tagihan</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+<thead>
+    <tr>
+        <th class="ps-4 text-center" style="width:70px;">No</th>
+        <th class="text-center" style="width:40px;">ID</th>
+        <th>Nama</th>
+        <th>Area & Sales</th>
+        <th>Paket Layanan</th>
+        <th class="text-center" style="width:140px;">IP Address</th>
+        <th class="text-center" style="width:150px;">Jatuh Tempo</th>
+        <th class="text-center" style="width:160px;">Total Tagihan</th>
+        <th class="text-center" style="width:220px;">Status</th>
+    </tr>
+</thead>
+
 
                 <tbody id="tagihan-table-body">
                     @include('tagihan.partials.table', ['pelanggan' => $pelanggan])
@@ -230,7 +257,7 @@
             </table>
         </div>
 
-        {{-- PAGINATION CONSISTENT --}}
+        {{-- PAGINATION --}}
         <div class="pagination-wrapper" id="pagination-wrapper">
             {{ $pelanggan->onEachSide(1)->links('pagination::bootstrap-5') }}
         </div>
@@ -239,24 +266,22 @@
 @endsection
 
 @push('scripts')
-{{-- SCRIPT ASLI 100% --}}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function () {
 
-    let currentPage = 1;
     let currentAjax = null;
 
     function loadTagihanData(page = 1) {
-        currentPage = page;
-
-        if (currentAjax !== null) {
-            currentAjax.abort();
-        }
+        if (currentAjax !== null) currentAjax.abort();
 
         const status = $('#status-tagihan').val() || '';
+
+        // ✅ ambil sort dari hidden input (bukan urlParams di sini)
+        const sort = $('#sort-tagihan').val() || 'tunggakan_desc';
+
         const search = $('#search-tagihan').val();
-        const paket  = $('#paket-tagihan').val(); // (Optional jika ada)
+        const paket  = $('#paket-tagihan').val(); // kalau memang ada dropdown paket
         const sales  = $('#sales-tagihan').val();
         const area   = $('#area-tagihan').val();
 
@@ -268,6 +293,7 @@ $(document).ready(function () {
                 ajax:   true,
                 page:   page,
                 status: status,
+                sort:   sort,
                 search: search,
                 paket:  paket,
                 sales:  sales,
@@ -277,7 +303,7 @@ $(document).ready(function () {
                 $('#tagihan-table-body').html(response.html);
                 $('#pagination-wrapper').html(response.pagination);
 
-                updateUrl(status, search, paket, sales, area, page);
+                updateUrl(status, sort, search, paket, sales, area, page);
             },
             error: function (xhr, textStatus) {
                 if (textStatus === 'abort') return;
@@ -290,9 +316,11 @@ $(document).ready(function () {
         });
     }
 
-    function updateUrl(status, search, paket, sales, area, page) {
+    function updateUrl(status, sort, search, paket, sales, area, page) {
         const params = new URLSearchParams();
+
         if (status) params.set('status', status);
+        if (sort)   params.set('sort', sort);
         if (search) params.set('search', search);
         if (paket)  params.set('paket', paket);
         if (sales)  params.set('sales', sales);
@@ -306,31 +334,44 @@ $(document).ready(function () {
         window.history.replaceState({}, '', newUrl);
     }
 
-    // EVENT LISTENERS
+    // ✅ SEARCH
     $('#search-tagihan').on('input', function () {
         loadTagihanData(1);
     });
 
+    // ✅ FILTER
     $('#sales-tagihan, #area-tagihan').on('change', function () {
         loadTagihanData(1);
     });
 
+    // ✅ PAGINATION (fix URL relatif/absolut)
     $(document).on('click', '#pagination-wrapper .pagination a', function (e) {
         e.preventDefault();
-        const url  = new URL($(this).attr('href'));
+
+        const href = $(this).attr('href');
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
         const page = url.searchParams.get('page') || 1;
+
         loadTagihanData(page);
     });
 
+    // ✅ INIT: ambil dari URL sekali, simpan ke hidden input
     (function loadInitial() {
         const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status') ?? $('#status-tagihan').val() ?? '';
+
+        const status = urlParams.get('status') || $('#status-tagihan').val() || '';
+        const sort   = urlParams.get('sort')   || $('#sort-tagihan').val()   || 'tunggakan_desc';
+
         const search = urlParams.get('search');
         const sales  = urlParams.get('sales');
         const area   = urlParams.get('area');
         const page   = urlParams.get('page') || 1;
 
         $('#status-tagihan').val(status);
+        $('#sort-tagihan').val(sort);
+
         if (search) $('#search-tagihan').val(search);
         if (sales)  $('#sales-tagihan').val(sales);
         if (area)   $('#area-tagihan').val(area);
@@ -340,4 +381,5 @@ $(document).ready(function () {
 
 });
 </script>
+
 @endpush
