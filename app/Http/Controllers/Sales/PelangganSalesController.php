@@ -54,68 +54,65 @@ class PelangganSalesController extends Controller
      *  - "baru" sekarang BUKAN status di DB.
      *  - "baru" = pelanggan yang daftar di bulan & tahun ini (berdasarkan tanggal_registrasi).
      */
-    public function status(Request $request)
-    {
-        $user  = Auth::user();
-        $sales = $user->sales ?? null;
 
-        if (!$sales) {
-            abort(403, 'Sales tidak ditemukan');
-        }
+public function status(Request $request)
+{
+    $user  = Auth::user();
+    $sales = $user->sales ?? null;
 
-        $status = $request->get('status', 'aktif'); // default: aktif
-
-        $query = Pelanggan::with([
-                'area',
-                'sales.user',
-                'langganan.paket',
-                'langganan.tagihan',
-            ])
-            ->where('id_sales', $sales->id_sales);
-
-        // terapkan filter status (logika baru)
-        $this->applyStatusFilter($query, $status);
-
-        $pelanggan = $query
-            ->orderBy('nama')
-            ->paginate(20)
-            ->appends($request->query());
-
-        // hitung badge status per sales
-        $statusCounts = $this->getStatusCountsForSales($sales->id_sales);
-
-        // data area untuk filter di dropdown (kalau mau dipakai)
-        $dataArea = Area::orderBy('nama_area')->get();
-
-        return view('seles2.pelanggan.status', [
-            'pelanggan'    => $pelanggan,
-            'status'       => $status,
-            'statusCounts' => $statusCounts,
-            'dataArea'     => $dataArea,
-        ]);
+    if (!$sales) {
+        abort(403, 'Sales tidak ditemukan');
     }
 
-    /**
-     * Terapkan filter status ke query pelanggan.
-     *
-     * Sekarang:
-     *  - status = 'baru'   -> filter berdasarkan tanggal_registrasi (bulan & tahun ini).
-     *  - status = 'aktif'  -> status_pelanggan = 'aktif'.
-     *  - status = 'berhenti' / 'isolir' -> sesuai status_pelanggan.
-     */
-    private function applyStatusFilter($query, string $status): void
-    {
-        if ($status === 'baru') {
-            // "Pelanggan baru" = yang daftar bulan & tahun ini
-            $query->whereMonth('tanggal_registrasi', now()->month)
-                  ->whereYear('tanggal_registrasi', now()->year);
-        } elseif ($status === 'aktif') {
-            $query->where('status_pelanggan', 'aktif');
-        } elseif (in_array($status, ['berhenti', 'isolir'])) {
-            $query->where('status_pelanggan', $status);
-        }
-        // kalau status lain / nggak dikenali, biarkan tanpa filter tambahan
+    $status = $request->get('status', 'aktif');
+
+    // ✅ ambil bulan & tahun dari request (untuk tab "baru")
+    $bulan = (int) $request->get('bulan', now()->month);
+    $tahun = (int) $request->get('tahun', now()->year);
+
+    $query = Pelanggan::with([
+            'area',
+            'sales.user',
+            'langganan.paket',
+            'langganan.tagihan',
+        ])
+        ->where('id_sales', $sales->id_sales);
+
+    // ✅ terapkan filter status (baru pakai bulan/tahun)
+    $this->applyStatusFilter($query, $status, $bulan, $tahun);
+
+    $pelanggan = $query
+        ->orderBy('nama')
+        ->paginate(20)
+        ->appends($request->query()); // penting biar pagination bawa bulan/tahun
+
+    $statusCounts = $this->getStatusCountsForSales($sales->id_sales);
+    $dataArea = Area::orderBy('nama_area')->get();
+
+    return view('seles2.pelanggan.status', [
+        'pelanggan'    => $pelanggan,
+        'status'       => $status,
+        'statusCounts' => $statusCounts,
+        'dataArea'     => $dataArea,
+
+        // ✅ kirim ke view biar dropdown ke-set
+        'bulan'        => $bulan,
+        'tahun'        => $tahun,
+    ]);
+}
+
+// ✅ tambah parameter bulan/tahun
+private function applyStatusFilter($query, string $status, int $bulan, int $tahun): void
+{
+    if ($status === 'baru') {
+        $query->whereMonth('tanggal_registrasi', $bulan)
+              ->whereYear('tanggal_registrasi', $tahun);
+    } elseif ($status === 'aktif') {
+        $query->where('status_pelanggan', 'aktif');
+    } elseif (in_array($status, ['berhenti', 'isolir'])) {
+        $query->where('status_pelanggan', $status);
     }
+}
 
     /**
      * Hitung jumlah per status untuk badge di halaman status (KHUSUS SALES).

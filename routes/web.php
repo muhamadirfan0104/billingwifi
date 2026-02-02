@@ -69,6 +69,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/tagihan/bayar-banyak', [AdminTagihanController::class, 'bayarBanyak'])
         ->name('admin.tagihan.bayar-banyak');
 
+    Route::get('/admin/tagihan/nota/{id}', [\App\Http\Controllers\AdminTagihanController::class, 'nota'])
+    ->name('admin.tagihan.nota');
+
     Route::get('/pembayaran/riwayat', [PembayaranController::class, 'riwayat'])
         ->name('pembayaran.riwayat');
 
@@ -351,3 +354,12 @@ Route::middleware(['auth', 'sales'])->group(function () {
 });
 
 Route::get('/install-superadmin', [SuperAdminController::class, 'install']);
+
+Route::get('/debug-public', function () {
+    dd([
+        'public_path()' => public_path(),
+        'app_publicPath()' => app()->publicPath(),
+        'path.public' => app('path.public'),
+        'base_path()' => base_path(),
+    ]);
+});

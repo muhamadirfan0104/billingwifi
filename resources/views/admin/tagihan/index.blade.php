@@ -14,15 +14,13 @@
         --card-radius: 12px;
     }
 
-    /* 1. Typography */
     .page-title {
-        font-size: 22px; /* Font judul sedikit diperkecil */
+        font-size: 22px;
         font-weight: 800;
         color: var(--text-dark);
         letter-spacing: -0.5px;
     }
 
-    /* 2. Card Styles */
     .card-admin {
         background: #fff;
         border: none;
@@ -32,64 +30,52 @@
         width: 100%;
     }
 
-    /* 3. Form Inputs (Lebih Ramping) */
     .form-control-admin, .form-select-admin {
         border: 1px solid #dee2e6;
         border-radius: 8px;
-        padding: 8px 12px; /* Padding input dikurangi */
+        padding: 8px 12px;
         font-size: 13px;
     }
-    
+
     .form-control-admin:focus, .form-select-admin:focus {
         border-color: var(--theme-yellow);
         box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
     }
 
-    /* 4. Table Styling (COMPACT) */
-    .table-admin {
-        width: 100%;
-        margin-bottom: 0;
-    }
+    .table-admin { width: 100%; margin-bottom: 0; }
 
     .table-admin thead th {
         background-color: var(--theme-yellow-soft);
         color: var(--text-dark);
         font-weight: 700;
-        font-size: 12px; /* Font header lebih kecil */
+        font-size: 12px;
         text-transform: uppercase;
         border-bottom: 2px solid var(--theme-yellow);
-        padding: 12px 10px; /* Padding header dikurangi */
+        padding: 12px 10px;
         white-space: nowrap;
     }
 
     .table-admin tbody td {
-        padding: 10px; /* Padding sel dikurangi agar muat banyak */
+        padding: 10px;
         vertical-align: middle;
-        font-size: 13px; /* Font isi lebih kecil */
+        font-size: 13px;
         border-bottom: 1px solid #f0f0f0;
     }
 
-    .table-admin tbody tr:hover td {
-        background-color: #fffdf5;
-    }
+    .table-admin tbody tr:hover td { background-color: #fffdf5; }
 
-    /* 5. Pagination Styling (Yellow & Center) */
     .pagination-wrapper {
         display: flex;
         justify-content: center !important;
         align-items: center;
         width: 100%;
-        padding: 15px; /* Padding pagination dikurangi */
+        padding: 15px;
         background: #fff;
         border-top: 1px solid #f0f0f0;
     }
 
-    .pagination-wrapper nav .d-none.d-sm-flex > div:first-child {
-        display: none !important; 
-    }
-    .pagination-wrapper nav .d-none.d-sm-flex {
-        justify-content: center !important;
-    }
+    .pagination-wrapper nav .d-none.d-sm-flex > div:first-child { display: none !important; }
+    .pagination-wrapper nav .d-none.d-sm-flex { justify-content: center !important; }
 
     .page-item .page-link {
         color: #333;
@@ -110,7 +96,6 @@
         box-shadow: 0 2px 6px rgba(255, 193, 7, 0.4);
     }
 
-    /* 6. Preview Box Modal */
     .preview-bayar-box {
         background: var(--theme-yellow-soft);
         border: 1px dashed var(--theme-yellow);
@@ -132,7 +117,7 @@
         </div>
     </div>
 
-    {{-- FLASH MESSAGES --}}
+    {{-- FLASH MESSAGES (tetap) --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-left: 5px solid #198754;">
             <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
@@ -150,22 +135,21 @@
     {{-- FILTER CARD --}}
     <div class="card-admin p-3 mb-3">
         <div class="row g-2" id="filter-admin-tagihan-wrapper">
-            
-            {{-- Search Box --}}
+
             <div class="col-12 col-md-4">
                 <label class="form-label fw-bold text-muted small mb-1">Pencarian</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0" style="border-radius: 8px 0 0 8px; border-color: #dee2e6;">
                         <i class="bi bi-search text-warning" style="font-size: 13px;"></i>
                     </span>
-                    <input type="text" id="search-admin-tagihan" class="form-control form-control-admin border-start-0" 
+                    <input type="text" id="search-admin-tagihan"
+                           class="form-control form-control-admin border-start-0"
                            style="border-radius: 0 8px 8px 0;"
                            placeholder="Cari nama pelanggan / paket..."
                            value="{{ request('search') }}">
                 </div>
             </div>
 
-            {{-- Filter Sales --}}
             <div class="col-12 col-md-2">
                 <label class="form-label fw-bold text-muted small mb-1">Sales</label>
                 <select id="sales-admin-tagihan" class="form-select form-select-admin">
@@ -178,7 +162,6 @@
                 </select>
             </div>
 
-            {{-- Filter Wilayah --}}
             <div class="col-12 col-md-3">
                 <label class="form-label fw-bold text-muted small mb-1">Wilayah</label>
                 <select id="area-admin-tagihan" class="form-select form-select-admin">
@@ -191,7 +174,6 @@
                 </select>
             </div>
 
-            {{-- Filter Paket --}}
             <div class="col-12 col-md-3">
                 <label class="form-label fw-bold text-muted small mb-1">Paket</label>
                 <select id="paket-admin-tagihan" class="form-select form-select-admin">
@@ -203,6 +185,7 @@
                     @endforeach
                 </select>
             </div>
+
         </div>
     </div>
 
@@ -210,21 +193,20 @@
     <div class="card-admin p-0" style="overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-admin mb-0">
-<thead>
-    <tr>
-        <th class="ps-4 text-center" style="width:70px;">No</th>
-        <th class="text-center" style="width:40px;">ID</th>
-        <th>Nama</th>
-        <th>Area & Sales</th>
-        <th>Paket Layanan</th>
-        <th class="text-center" style="width:150px;">Jatuh Tempo</th>
-        <th>Info Tagihan</th>
-        <th class="text-center" style="width:150px;">Status</th>
-        <th class="text-center" style="width:150px;">Mulai Bayar</th>
-        <th class="text-center" style="width:140px;">Aksi</th>
-    </tr>
-</thead>
-
+                <thead>
+                    <tr>
+                        <th class="ps-4 text-center" style="width:70px;">No</th>
+                        <th class="text-center" style="width:40px;">ID</th>
+                        <th>Nama</th>
+                        <th>Area & Sales</th>
+                        <th>Paket Layanan</th>
+                        <th class="text-center" style="width:150px;">Jatuh Tempo</th>
+                        <th>Info Tagihan</th>
+                        <th class="text-center" style="width:150px;">Status</th>
+                        <th class="text-center" style="width:150px;">Mulai Bayar</th>
+                        <th class="text-center" style="width:140px;">Aksi</th>
+                    </tr>
+                </thead>
 
                 <tbody id="admin-tagihan-table-body">
                     @include('admin.tagihan.partials.table', ['pelanggan' => $pelanggan])
@@ -232,12 +214,10 @@
             </table>
         </div>
 
-        {{-- Pagination --}}
         <div class="pagination-wrapper" id="admin-tagihan-pagination">
             {{ $pelanggan->onEachSide(1)->links('pagination::bootstrap-5') }}
         </div>
 
-        {{-- MODAL CONTAINER --}}
         <div id="modal-container-admin-tagihan">
             @include('admin.tagihan.partials.modals', ['pelanggan' => $pelanggan])
         </div>
@@ -260,16 +240,138 @@
             </div>
             <div class="modal-footer justify-content-center border-0 pb-4">
                 <button type="button" class="btn btn-light px-4 rounded-pill border" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-warning px-4 rounded-pill fw-bold text-dark" id="btn-confirm-bayar-periode">Ya, Lanjut Bayar</button>
+                <button type="button" class="btn btn-warning px-4 rounded-pill fw-bold text-dark" id="btn-confirm-bayar-periode">
+                    Ya, Lanjut Bayar
+                </button>
             </div>
         </div>
     </div>
 </div>
+{{-- ===== MODAL SUKSES + PREVIEW NOTA (ADMIN) ===== --}}
+@php
+$successModalMsg  = session('success_modal');
+$lastPembayaranId = session('last_pembayaran_id');
+
+$waNumber   = session('wa_pelanggan');
+$noInvoice  = session('no_invoice');
+$totalBayar = session('total_bayar');
+
+    // prebuild URL kalau id ada
+    $notaBaseUrl = $lastPembayaranId
+        ? route('admin.tagihan.nota', ['id' => $lastPembayaranId])
+        : null;
+@endphp
+
+@if ($successModalMsg && $lastPembayaranId && $notaBaseUrl)
+    @php
+        $waLink = null;
+
+        if (!empty($waNumber)) {
+            $digits = preg_replace('/[^0-9]/', '', $waNumber);
+            if (str_starts_with($digits, '0')) $digits = '62'.substr($digits, 1);
+
+            $msg = "Halo, ini nota pembayaran.\n".
+                   "No: ".($noInvoice ?? '-')."\n".
+                   "Total: Rp ".number_format((int)($totalBayar ?? 0),0,',','.')."\n".
+                   "Link Nota: ".$notaBaseUrl;
+
+            $waLink = "https://wa.me/".$digits."?text=".urlencode($msg);
+        }
+    @endphp
+
+    {{-- MODAL SUKSES --}}
+    <div class="modal fade" id="modalSuksesBayarAdmin" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow:hidden;">
+                <div class="modal-header border-0 pb-0 bg-white">
+                    <div>
+                        <h6 class="modal-title fw-bold text-dark mb-0">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                            Pembayaran Berhasil
+                        </h6>
+                        <small class="text-muted">{{ $successModalMsg }}</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+
+                <div class="modal-body pt-3">
+                    <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 rounded-3 mb-3">
+                        <div class="fw-bold text-dark mb-1">Aksi berikutnya:</div>
+                        <div class="small text-muted">Cetak nota atau kirim ke WhatsApp pelanggan.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+<button type="button"
+        class="btn btn-success rounded-pill fw-bold"
+        id="btnPreviewNotaAdmin"
+        data-nota-url="{{ $notaBaseUrl }}?embed=1">
+    <i class="bi bi-eye"></i> Lihat Nota (PDF)
+</button>
+
+
+{{-- tombol cetak --}}
+<a href="{{ $notaBaseUrl }}?embed=1"
+   target="_blank" rel="noopener"
+   class="btn btn-outline-primary rounded-pill fw-bold"
+   onclick="this.href='{{ $notaBaseUrl }}?embed=1&print=1'">
+    <i class="bi bi-printer"></i> Cetak
+</a>
+
+
+                        @if ($waLink)
+                            <a target="_blank" rel="noopener" href="{{ $waLink }}" class="btn btn-outline-success rounded-pill fw-bold">
+                                <i class="bi bi-whatsapp"></i> Kirim ke WhatsApp
+                            </a>
+                        @else
+                            <button type="button" class="btn btn-outline-secondary rounded-pill fw-bold" disabled>
+                                <i class="bi bi-whatsapp"></i> Nomor WA tidak tersedia
+                            </button>
+                        @endif
+
+                        <button type="button" class="btn btn-light rounded-pill fw-bold text-secondary" data-bs-dismiss="modal">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL PREVIEW --}}
+    <div class="modal fade" id="modalPreviewNotaAdmin" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 980px;">
+            <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold mb-0">
+                        <i class="bi bi-file-earmark-text"></i> Preview Nota (A4)
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-0" style="background:#e9ecef;">
+                    <iframe id="iframeNotaAdmin" src="about:blank"
+                            style="width:100%; height:78vh; border:0; display:block;"></iframe>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">
+                        Tutup
+                    </button>
+
+                    <a href="{{ $notaBaseUrl }}?download=1"
+                       target="_blank" rel="noopener"
+                       class="btn btn-primary rounded-pill fw-bold">
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 
 @endsection
 
 @push('scripts')
-{{-- SCRIPT ASLI TIDAK BERUBAH SAMA SEKALI --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     let timeout     = null;
@@ -280,6 +382,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const salesSelect = document.getElementById('sales-admin-tagihan');
     const areaSelect  = document.getElementById('area-admin-tagihan');
 
+    // ======================
+    // 1) PREVIEW BAYAR PERIODE (ADMIN)
+    // ======================
     function initFormBayarPeriode() {
         document.querySelectorAll('.form-bayar-periode-admin').forEach(function (form) {
             const inputJumlah  = form.querySelector('.input-jumlah-bulan');
@@ -317,12 +422,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const maxBulan      = parseInt(form.dataset.maxBulan || '60', 10);
 
             let bulanTagihan = [];
-            try { bulanTagihan = JSON.parse(form.dataset.bulanTagihan || '[]'); } catch (e) { bulanTagihan = []; }
+            try { bulanTagihan = JSON.parse(form.dataset.bulanTagihan || '[]'); }
+            catch (e) { bulanTagihan = []; }
 
             const startObj = parseYm(startYm);
 
             function computePaidMonths(jml) {
                 const paid = [];
+
                 if (bulanTagihan.length === 0) {
                     let curr = { ...startObj };
                     for (let i = 0; i < jml; i++) {
@@ -331,27 +438,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     return paid;
                 }
+
                 const lastExistingYm  = bulanTagihan[bulanTagihan.length - 1];
                 const lastExistingObj = parseYm(lastExistingYm);
+
                 let curr  = { ...startObj };
                 let count = 0;
+
                 while (true) {
                     const ym = ymString(curr);
+
                     if (bulanTagihan.includes(ym)) {
                         paid.push({ ...curr });
                         count++;
                         if (count === jml) return paid;
                     }
-                    if (isAfterOrEqual(curr, lastExistingObj)) break; 
+
+                    if (isAfterOrEqual(curr, lastExistingObj)) break;
                     curr = addMonths(curr, 1);
                 }
-                let base = addMonths(lastExistingObj, 1);
-                let curr2 = { ...base };
+
+                let curr2 = { ...addMonths(lastExistingObj, 1) };
                 while (count < jml) {
                     paid.push({ ...curr2 });
                     count++;
                     curr2 = addMonths(curr2, 1);
                 }
+
                 return paid;
             }
 
@@ -359,38 +472,66 @@ document.addEventListener('DOMContentLoaded', function () {
                 let jml = parseInt(inputJumlah.value || '1', 10);
                 if (isNaN(jml) || jml < 1) jml = 1;
                 if (jml > maxBulan) jml = maxBulan;
+
                 inputJumlah.value = jml;
+
                 const paidMonths = computePaidMonths(jml);
                 if (paidMonths.length === 0) {
                     previewText.innerHTML = 'Tidak ada bulan tagihan yang bisa dibayar.';
                     return;
                 }
+
                 const startLabel = formatBulanTahun(paidMonths[0]);
                 const endLabel   = formatBulanTahun(paidMonths[paidMonths.length - 1]);
-                const total = jml * hargaPerBulan;
+                const total      = jml * hargaPerBulan;
+
                 const kalimat = (jml === 1)
-                    ? `Akan dibayar 1 bulan tagihan untuk ${startLabel}.`
-                    : `Akan dibayar ${jml} bulan tagihan, dari ${startLabel} sampai ${endLabel}.`;
+                    ? `Akan dibayar 1 bulan tagihan untuk <strong>${startLabel}</strong>.`
+                    : `Akan dibayar <strong>${jml}</strong> bulan tagihan, dari <strong>${startLabel}</strong> sampai <strong>${endLabel}</strong>.`;
+
                 previewText.innerHTML = `${kalimat}<br>Perkiraan total: <strong>Rp ${total.toLocaleString('id-ID')}</strong> (Rp ${hargaPerBulan.toLocaleString('id-ID')} x ${jml} bulan).`;
             }
+
             inputJumlah.addEventListener('input', updatePreview);
+            inputJumlah.addEventListener('change', updatePreview);
             updatePreview();
         });
     }
 
+    // ======================
+    // 2) LOAD TABLE AJAX
+    // ======================
     function loadAdminTagihanTable(page = 1) {
         currentPage = page;
-        const params = { ajax: true, page: page, search: searchInput.value, paket: paketSelect.value, sales: salesSelect.value, area: areaSelect.value };
-        fetch(`{{ route('admin.tagihan.index') }}?` + new URLSearchParams(params), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+
+        const params = {
+            ajax: true,
+            page: page,
+            search: searchInput?.value || '',
+            paket: paketSelect?.value || '',
+            sales: salesSelect?.value || '',
+            area: areaSelect?.value || ''
+        };
+
+        fetch(`{{ route('admin.tagihan.index') }}?` + new URLSearchParams(params), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
         .then(res => res.json())
         .then(res => {
             document.getElementById('admin-tagihan-table-body').innerHTML = res.html;
             document.getElementById('admin-tagihan-pagination').innerHTML = res.pagination;
-            if (res.modals) document.getElementById('modal-container-admin-tagihan').innerHTML = res.modals;
+
+            if (res.modals) {
+                document.getElementById('modal-container-admin-tagihan').innerHTML = res.modals;
+            }
+
             updateUrl(params.search, params.paket, params.sales, params.area, page);
-            initFormBayarPeriode(); 
+            initFormBayarPeriode();
         })
-        .catch(err => { console.error(err); alert('Gagal memuat data tagihan'); });
+        .catch(err => {
+            console.error(err);
+            alert('Gagal memuat data tagihan');
+        });
     }
 
     function updateUrl(search, paket, sales, area, page) {
@@ -400,41 +541,84 @@ document.addEventListener('DOMContentLoaded', function () {
         if (sales)  params.set('sales', sales);
         if (area)   params.set('area', area);
         if (page > 1) params.set('page', page);
-        const newUrl = params.toString() ? '{{ route("admin.tagihan.index") }}?' + params.toString() : '{{ route("admin.tagihan.index") }}';
+
+        const newUrl = params.toString()
+            ? '{{ route("admin.tagihan.index") }}?' + params.toString()
+            : '{{ route("admin.tagihan.index") }}';
+
         window.history.replaceState({}, '', newUrl);
     }
 
     function initFromUrl() {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('search')) searchInput.value = params.get('search');
-        if (params.get('paket')) paketSelect.value = params.get('paket');
-        if (params.get('sales')) salesSelect.value = params.get('sales');
-        if (params.get('area')) areaSelect.value = params.get('area');
+        if (params.get('search') && searchInput) searchInput.value = params.get('search');
+        if (params.get('paket') && paketSelect) paketSelect.value = params.get('paket');
+        if (params.get('sales') && salesSelect) salesSelect.value = params.get('sales');
+        if (params.get('area')  && areaSelect)  areaSelect.value  = params.get('area');
+
         loadAdminTagihanTable(params.get('page') || 1);
     }
 
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             clearTimeout(timeout);
-            timeout = setTimeout(function () { loadAdminTagihanTable(1); }, 250);
+            timeout = setTimeout(function () {
+                loadAdminTagihanTable(1);
+            }, 250);
         });
     }
 
     [paketSelect, salesSelect, areaSelect].forEach(function (el) {
         if (!el) return;
-        el.addEventListener('change', function () { loadAdminTagihanTable(1); });
+        el.addEventListener('change', function () {
+            loadAdminTagihanTable(1);
+        });
     });
 
     document.addEventListener('click', function (e) {
         const link = e.target.closest('#admin-tagihan-pagination .pagination a');
         if (!link) return;
+
         e.preventDefault();
-        const url  = new URL(link.getAttribute('href'));
+        const url = new URL(link.getAttribute('href'));
         loadAdminTagihanTable(url.searchParams.get('page') || 1);
     });
 
-    initFromUrl();
-    initFormBayarPeriode();
+    // ======================
+    // 3) MODAL SUKSES + PREVIEW NOTA (ADMIN)
+    // ======================
+
+  function initNotaAdmin() {
+    const modalSuksesEl = document.getElementById('modalSuksesBayarAdmin');
+    if (modalSuksesEl && window.bootstrap) {
+      document.querySelectorAll('.modal.show').forEach(m => {
+        const inst = bootstrap.Modal.getInstance(m);
+        if (inst) inst.hide();
+      });
+      new bootstrap.Modal(modalSuksesEl, { backdrop: 'static', keyboard: true }).show();
+    }
+
+    const btnPreview     = document.getElementById('btnPreviewNotaAdmin');
+    const iframeNota     = document.getElementById('iframeNotaAdmin');
+    const modalPreviewEl = document.getElementById('modalPreviewNotaAdmin');
+
+    if (btnPreview && iframeNota && modalPreviewEl && window.bootstrap) {
+      btnPreview.addEventListener('click', function () {
+        iframeNota.src = this.dataset.notaUrl || 'about:blank';
+        new bootstrap.Modal(modalPreviewEl).show();
+      });
+    }
+
+    if (modalPreviewEl) {
+      modalPreviewEl.addEventListener('hidden.bs.modal', function () {
+        if (iframeNota) iframeNota.src = 'about:blank';
+      });
+    }
+  }
+
+  // panggil ini terakhir
+  initNotaAdmin();
 });
 </script>
+
 @endpush

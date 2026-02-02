@@ -18,10 +18,41 @@
             <div class="col-md-4 fw-semibold">Alamat</div>
             <div class="col-md-8">{{ $pelanggan->alamat }}</div>
         </div>
-        <div class="row mb-3">
-            <div class="col-md-4 fw-semibold">No. HP</div>
-            <div class="col-md-8">{{ $pelanggan->nomor_hp }}</div>
-        </div>
+<div class="row mb-3">
+    <div class="col-md-4 fw-semibold">No. HP</div>
+    <div class="col-md-8">
+        @php
+            $raw = $pelanggan->nomor_hp ?? '';
+            $digits = preg_replace('/\D+/', '', $raw);
+
+            // normalisasi nomor:
+            // 08xxxx -> 628xxxx
+            // +62xxxx -> 62xxxx (karena $digits sudah tanpa +)
+            // 62xxxx -> tetap
+            if (str_starts_with($digits, '0')) {
+                $wa = '62' . substr($digits, 1);
+            } elseif (str_starts_with($raw, '+62')) {
+                $wa = '62' . substr($digits, 2);
+            } else {
+                $wa = $digits;
+            }
+
+            // (opsional) pesan default
+            $msg = urlencode("Halo {$pelanggan->nama}, ...");
+        @endphp
+
+        @if(!empty($wa))
+            <a href="https://wa.me/{{ $wa }}?text={{ $msg }}"
+               target="_blank"
+               class="text-success text-decoration-none fw-semibold">
+                <i class="bi bi-whatsapp me-1"></i> {{ $pelanggan->nomor_hp }}
+            </a>
+        @else
+            -
+        @endif
+    </div>
+</div>
+
         <div class="row mb-3">
             <div class="col-md-4 fw-semibold">IP Address</div>
             <div class="col-md-8">{{ $pelanggan->ip_address }}</div>
