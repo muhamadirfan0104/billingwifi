@@ -86,6 +86,61 @@
                 $pelangganStatusClass = 'bg-secondary';
         }
     @endphp
+    @php
+    // ====== WA BUTTON (samakan gaya seperti sales) ======
+    $waNumber = $p->nomor_hp ?? null; // pastikan field ini ada (kalau beda, sesuaikan)
+
+    // daftar periode tunggakan
+    $listPeriode = $tunggakan->map(function($tg){
+        return Carbon::create($tg->tahun, $tg->bulan, 1)
+            ->locale('id')
+            ->translatedFormat('F Y');
+    })->values()->toArray();
+
+    $periodePertama  = $listPeriode[0] ?? null;
+    $periodeTerakhir = $listPeriode[count($listPeriode) - 1] ?? null;
+
+    if (count($listPeriode) === 1) {
+        $periodeText = $periodePertama;
+    } elseif (count($listPeriode) > 1) {
+        $periodeText = $periodePertama . ' s.d ' . $periodeTerakhir;
+    } else {
+        $periodeText = '-';
+    }
+
+    $totalTunggakanText = 'Rp ' . number_format((int)$totalTagihan, 0, ',', '.');
+
+    // batas bayar (pakai jatuh tempo tagihan paling tua di tunggakan kalau ada, fallback 2 hari)
+    $tagihanPalingTua = $tunggakan->sortBy(fn($t) => $t->tahun * 100 + $t->bulan)->first();
+    $batasBayar = $tagihanPalingTua && !empty($tagihanPalingTua->jatuh_tempo)
+        ? Carbon::parse($tagihanPalingTua->jatuh_tempo)->locale('id')->translatedFormat('d F Y')
+        : now()->addDays(2)->locale('id')->translatedFormat('d F Y');
+
+    $msg =
+"Assalamu’alaikum Bapak/Ibu/Sdr {$p->nama},
+
+Kami informasikan bahwa tagihan layanan internet Anda saat ini masih *BELUM LUNAS*.
+
+• Periode tunggakan: *{$periodeText}* (" . count($listPeriode) . " bulan)
+• Total tagihan: *{$totalTunggakanText}*
+• Batas pembayaran: *24 jam setelah pesan ini (jika tidak ada kejelasan)*
+
+Mohon segera dilakukan pembayaran untuk menghindari isolir/putus layanan.
+Terima kasih. 🙏";
+
+    $waLink = null;
+    if (!empty($waNumber)) {
+        $digits = preg_replace('/[^0-9]/', '', $waNumber);
+
+        // normalisasi 08xxxx → 62xxxx
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . substr($digits, 1);
+        }
+
+        $waLink = "https://wa.me/" . $digits . "?text=" . urlencode($msg);
+    }
+@endphp
+
 
     <tr>
         <td class="ps-4">{{ $noUrut }}</td>
@@ -179,9 +234,20 @@
                                 </ul>
                             </div>
 
-                            <div class="modal-footer">
-                                <button class="btn btn-dark" data-bs-dismiss="modal">Tutup</button>
-                            </div>
+<div class="modal-footer">
+    @if ($waLink)
+        <a target="_blank" href="{{ $waLink }}" class="btn btn-outline-success fw-bold">
+            <i class="bi bi-whatsapp"></i> Kirim WA Tagihan
+        </a>
+    @else
+        <button type="button" class="btn btn-outline-secondary fw-bold" disabled>
+            <i class="bi bi-whatsapp"></i> Nomor WA tidak tersedia
+        </button>
+    @endif
+
+    <button class="btn btn-dark" data-bs-dismiss="modal">Tutup</button>
+</div>
+
 
                         </div>
                     </div>

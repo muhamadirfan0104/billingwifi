@@ -226,8 +226,12 @@
         <th style="width:180px;">Pembayaran By</th>
         <th class="text-end" style="width:160px;">Nominal</th>
         <th class="text-center" style="width:140px;">Detail Tagihan</th>
+
+        {{-- TAMBAH INI --}}
+        <th class="text-center" style="width:160px;">Aksi</th>
     </tr>
 </thead>
+
 
                 <tbody id="riwayat-tbody">
                     @include('pembayaran.partials.table_rows_riwayat', ['pembayaran' => $pembayaran])
@@ -242,6 +246,37 @@
     </div>
 
 </div>
+{{-- MODAL PREVIEW NOTA (RIWAYAT) --}}
+<div class="modal fade" id="modalPreviewNotaRiwayat" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 980px;">
+        <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold mb-0">
+                    <i class="bi bi-file-earmark-text"></i> Preview Nota (A4)
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0" style="background:#e9ecef;">
+                <iframe id="iframeNotaRiwayat" src="about:blank"
+                        style="width:100%; height:78vh; border:0; display:block;"></iframe>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">
+                    Tutup
+                </button>
+
+                <a href="#" id="btnDownloadNotaRiwayat"
+                   target="_blank" rel="noopener"
+                   class="btn btn-primary rounded-pill fw-bold">
+                    <i class="bi bi-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @stack('modals')
@@ -308,4 +343,39 @@ document.addEventListener('DOMContentLoaded', function () {
     bindPagination();
 })();
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalPreviewEl = document.getElementById('modalPreviewNotaRiwayat');
+    const iframeNota     = document.getElementById('iframeNotaRiwayat');
+    const btnDownload    = document.getElementById('btnDownloadNotaRiwayat');
+
+    // event delegation: aman untuk AJAX reload, gak perlu bind ulang
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.btn-preview-nota-riwayat');
+        if (!btn) return;
+
+        const url = btn.dataset.notaUrl || 'about:blank';
+        if (iframeNota) iframeNota.src = url;
+
+        if (btnDownload) {
+            // kalau url punya embed=1, ganti ke download=1
+            btnDownload.href = url.includes('embed=1')
+                ? url.replace('embed=1', 'download=1')
+                : (url + (url.includes('?') ? '&' : '?') + 'download=1');
+        }
+
+        if (modalPreviewEl && window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(modalPreviewEl).show();
+        }
+    });
+
+    if (modalPreviewEl) {
+        modalPreviewEl.addEventListener('hidden.bs.modal', function () {
+            if (iframeNota) iframeNota.src = 'about:blank';
+            if (btnDownload) btnDownload.href = '#';
+        });
+    }
+});
+</script>
+
 @endpush

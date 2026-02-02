@@ -247,6 +247,7 @@
         <th class="text-center" style="width:150px;">Jatuh Tempo</th>
         <th class="text-center" style="width:160px;">Total Tagihan</th>
         <th class="text-center" style="width:220px;">Status</th>
+        <th class="text-center" style="width:160px;">Aksi</th>
     </tr>
 </thead>
 

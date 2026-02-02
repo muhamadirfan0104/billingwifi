@@ -12,8 +12,10 @@ use App\Models\Paket;
 use App\Models\Langganan;
 use App\Models\Sales;
 use App\Models\Area;
-
+use Illuminate\Support\Str;
 use App\Services\TagihanService;
+
+use Mpdf\Mpdf;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -244,17 +246,77 @@ public function bayarBanyak(Request $request)
             'nominal'        => $totalBayar,
         ]);
 
-        DB::commit();
+DB::commit();
 
-        return back()->with('success', 'Pembayaran periode berhasil diproses.');
+// ambil pelanggan (buat WA & nama)
+$pelanggan = $langganan->pelanggan;
+
+return back()
+    ->with('success', 'Pembayaran periode berhasil diproses.') // alert biasa tetap ada
+    ->with('success_modal', 'Pembayaran periode berhasil diproses.') // khusus modal
+    ->with('last_pembayaran_id', $pembayaran->id_pembayaran)
+    ->with('wa_pelanggan', $pelanggan->nomor_hp)      // optional
+    ->with('no_invoice', $pembayaran->no_pembayaran)  // optional
+    ->with('total_bayar', $totalBayar);               // optional
+
     } catch (\Throwable $e) {
         DB::rollBack();
         return back()->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
     }
 }
 
+public function nota($id)
+{
+    $pembayaran = Pembayaran::with([
+        'pelanggan',
+        'sales.user',
+        'paymentItems.tagihan.langganan.paket',
+    ])->findOrFail($id);
 
+    $download = request()->boolean('download');
+    $embed    = request()->boolean('embed');
 
+    $no   = $pembayaran->no_pembayaran ?? 'NOTA';
+    $nama = $pembayaran->pelanggan->nama ?? 'PELANGGAN';
+
+    $namaSafe = Str::of($nama)
+        ->upper()
+        ->replaceMatches('/[^A-Z0-9 ]/', '')
+        ->trim()
+        ->replaceMatches('/\s+/', ' ')
+        ->toString();
+
+    $filename = $no.' - '.$namaSafe.'.pdf';
+
+    // PREVIEW (HTML biasa)
+    if (!$download) {
+        return view('seles2.tagihan.nota', [
+            'pembayaran' => $pembayaran,
+            'embed'      => $embed,
+        ]);
+    }
+
+    // DOWNLOAD (mPDF pakai view khusus PDF)
+    $tempDir = storage_path('app/mpdf');
+    if (!is_dir($tempDir)) @mkdir($tempDir, 0775, true);
+
+    $mpdf = new \Mpdf\Mpdf([
+        'mode'    => 'utf-8',
+        'format'  => 'A4',
+        'tempDir' => $tempDir,
+    ]);
+
+    $html = view('seles2.tagihan.nota_pdf', [
+        'pembayaran' => $pembayaran,
+    ])->render();
+
+    $mpdf->WriteHTML($html);
+
+    return response($mpdf->Output($filename, 'S'), 200, [
+        'Content-Type'        => 'application/pdf',
+        'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+    ]);
+}
 
 
     protected function generateNoPembayaran(): string
