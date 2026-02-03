@@ -56,7 +56,7 @@
     <div class="modal fade" id="{{ $modalId }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
 <form class="modal-content form-bayar-periode-admin"
-      action="{{ route('admin.tagihan.bayar-banyak') }}"
+      action="{{ url('/index.php/admin/tagihan/bayar-banyak') }}">
       method="POST"
       data-start-ym="{{ $startYm }}"
       data-start-label="{{ $startLabel }}"

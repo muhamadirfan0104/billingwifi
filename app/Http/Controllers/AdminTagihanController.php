@@ -103,6 +103,8 @@ if ($request->ajax()) {
             'dataArea'  => $dataArea,
         ]);
     }
+    
+
 
  
 public function bayarBanyak(Request $request)
