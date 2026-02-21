@@ -131,15 +131,20 @@
         {{-- MULAI BAYAR DARI --}}
         <td>{{ $mulaiBayarLbl }}</td>
 
-<td class="text-center">
-  @if($langganan)
-    <input type="checkbox"
-           class="checkRow"
-           name="ids[]"
-           value="{{ $p->id_pelanggan }}"
-           form="formBayarBanyakAdmin">
-  @endif
-</td>
+        {{-- AKSI --}}
+        <td>
+            @if($langganan)
+                <button class="btn btn-primary btn-sm w-100"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modal-bayar-{{ $p->id_pelanggan }}">
+                    Bayar Periode
+                </button>
+            @else
+                <button class="btn btn-secondary btn-sm w-100" disabled>
+                    Tidak ada langganan
+                </button>
+            @endif
+        </td>
     </tr>
 
 @empty
