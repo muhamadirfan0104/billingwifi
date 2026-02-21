@@ -29,6 +29,7 @@ use App\Models\Pengeluaran;
 use Illuminate\Support\Facades\Route;
 
 
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -255,6 +256,17 @@ Route::middleware(['auth', 'sales'])->group(function () {
             // DETAIL PELANGGAN SALES (MOBILE)
             Route::get('/{id}', [PelangganSalesController::class, 'show'])
                 ->name('show');
+        
+
+
+            Route::prefix('seles2')->name('seles2.')->group(function () {
+
+                Route::post('/tagihan/bayar-banyak', 
+                    [TagihanSalesController::class, 'bayarBanyak'])
+                    ->name('tagihan.bayar-banyak');
+
+            });
+
         });
 
         /*
