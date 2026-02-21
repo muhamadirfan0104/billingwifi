@@ -451,19 +451,68 @@ class PelangganController extends Controller
             $statusLangganan = Langganan::statusLanggananOptions($request->status_pelanggan);
             $langganan       = Langganan::where('id_pelanggan', $pelanggan->id_pelanggan)->first();
 
-            if ($langganan) {
-                $langganan->update([
-                    'id_paket'         => $request->id_paket,
-                    'status_langganan' => $statusLangganan,
-                ]);
-            } else {
-                Langganan::create([
-                    'id_pelanggan'     => $pelanggan->id_pelanggan,
-                    'id_paket'         => $request->id_paket,
-                    'tanggal_mulai'    => now(),
-                    'status_langganan' => $statusLangganan,
-                ]);
-            }
+if ($langganan) {
+
+    $paketLamaId = $langganan->id_paket;
+
+    $langganan->update([
+        'id_paket'         => $request->id_paket,
+        'status_langganan' => $statusLangganan,
+    ]);
+
+    // 🔄 Kalau paket berubah → update tagihan belum lunas
+    if ($paketLamaId != $request->id_paket) {
+
+        $paketBaru = Paket::find($request->id_paket);
+
+if ($paketBaru) {
+
+    $now = now();
+
+    // Ambil tagihan bulan sekarang
+    $tagihanBulanIni = Tagihan::where('id_langganan', $langganan->id_langganan)
+        ->where('bulan', $now->month)
+        ->where('tahun', $now->year)
+        ->first();
+
+    if ($tagihanBulanIni) {
+
+        $jatuhTempo = \Carbon\Carbon::parse($tagihanBulanIni->jatuh_tempo);
+
+        if ($now->lt($jatuhTempo)) {
+            // ✅ Sebelum jatuh tempo → update bulan ini
+            $targetBulan = $now->month;
+            $targetTahun = $now->year;
+        } else {
+            // ❌ Setelah jatuh tempo → update bulan depan
+            $nextMonth = $now->copy()->addMonth();
+            $targetBulan = $nextMonth->month;
+            $targetTahun = $nextMonth->year;
+        }
+
+        Tagihan::where('id_langganan', $langganan->id_langganan)
+            ->where('bulan', $targetBulan)
+            ->where('tahun', $targetTahun)
+            ->where('status_tagihan', 'belum lunas')
+            ->update([
+                'harga_dasar'   => $paketBaru->harga_dasar,
+                'ppn_nominal'   => $paketBaru->ppn_nominal,
+                'total_tagihan' => $paketBaru->harga_total,
+            ]);
+    }
+}
+
+
+    }
+
+} else {
+    Langganan::create([
+        'id_pelanggan'     => $pelanggan->id_pelanggan,
+        'id_paket'         => $request->id_paket,
+        'tanggal_mulai'    => now(),
+        'status_langganan' => $statusLangganan,
+    ]);
+}
 
             DB::commit();
 
