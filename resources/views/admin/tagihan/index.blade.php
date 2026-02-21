@@ -189,6 +189,14 @@
 
         </div>
     </div>
+    <form method="POST" action="{{ route('admin.tagihan.bayar-banyak') }}" id="formBayarBanyakAdmin" class="mb-3">
+  @csrf
+
+  <button type="submit" class="btn btn-warning fw-bold rounded-pill"
+          onclick="return confirm('Bayar semua pelanggan yang dipilih?')">
+    <i class="bi bi-cash-stack"></i> Bayar Banyak
+  </button>
+</form>
 
     {{-- TABLE CARD --}}
     <div class="card-admin p-0" style="overflow: hidden;">
